@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo } from 'react';
@@ -9,14 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { User, Search, CheckCircle2, XCircle } from 'lucide-react';
+import { cn } from "@/lib/utils"; // Import cn
 
 interface TeacherDetailsProps {
   teachers: Teacher[];
   students: Student[];
   onRenewalToggle: (studentId: number) => void;
+  isAdminView?: boolean; // Add prop to differentiate admin view
 }
 
-export function TeacherDetails({ teachers, students, onRenewalToggle }: TeacherDetailsProps) {
+export function TeacherDetails({ teachers, students, onRenewalToggle, isAdminView = false }: TeacherDetailsProps) {
   // Store selected teacher's name instead of ID
   const [selectedTeacherName, setSelectedTeacherName] = useState<string | undefined>(teachers[0]?.name);
   const [searchTerm, setSearchTerm] = useState('');
@@ -92,7 +95,7 @@ export function TeacherDetails({ teachers, students, onRenewalToggle }: TeacherD
                 </div>
                 <div className="text-right mt-2 md:mt-0">
                      <p className="text-sm font-medium text-foreground">Yenileme Oranı</p>
-                      <Badge variant={currentTeacherPercentage >= 90 ? "default" : "secondary"} className={`text-lg ${currentTeacherPercentage >= 90 ? 'bg-accent text-accent-foreground' : ''}`}>
+                      <Badge variant={currentTeacherPercentage >= 90 ? "default" : "secondary"} className={cn('text-lg', currentTeacherPercentage >= 90 ? 'bg-accent text-accent-foreground' : currentTeacherPercentage >= 50 ? 'bg-primary text-primary-foreground' : 'bg-destructive text-destructive-foreground' )}>
                         {currentTeacherPercentage}%
                     </Badge>
                 </div>
@@ -119,6 +122,8 @@ export function TeacherDetails({ teachers, students, onRenewalToggle }: TeacherD
                             checked={student.renewed}
                             onCheckedChange={() => onRenewalToggle(student.id)}
                             aria-label={`${student.name} için kayıt yenileme durumu`}
+                            disabled={!isAdminView} // Disable checkbox if not in admin view
+                            className={cn(!isAdminView && "cursor-not-allowed opacity-50")} // Add styling for disabled state
                           />
                            {student.renewed ? (
                               <CheckCircle2 className="h-5 w-5 text-accent" />

@@ -5,12 +5,15 @@ import React, { useState, useEffect } from 'react';
 import type { Student, Teacher } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UploadForm } from '@/components/upload-form';
+// Removed UploadForm import
 import { TeacherLeaderboard } from '@/components/teacher-leaderboard';
 import { TeacherDetails } from '@/components/teacher-details';
 import { SchoolProgress } from '@/components/school-progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label'; // Import Label for SchoolProgress explicit label
+import Link from 'next/link'; // Import Link for Admin Panel
+import { Button } from '@/components/ui/button'; // Import Button
+import { UserCog } from 'lucide-react'; // Import icon for admin link
 
 export default function Home() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -89,21 +92,18 @@ export default function Home() {
   }, [teachers, students, isLoading]);
 
 
-  const handleDataUpload = (uploadedTeachers: Teacher[], uploadedStudents: Student[]) => {
-    setIsLoading(true); // Indicate loading while processing new data
-    setTeachers(uploadedTeachers);
-    setStudents(uploadedStudents);
-    setError(null); // Clear previous errors on successful upload
-    setIsLoading(false); // Done processing
-  };
-
+ // This function is now only relevant for the admin panel,
+ // but keep it here for potential future use or refactoring into a shared hook/context.
+ // The TeacherDetails component in this view will have checkboxes disabled.
   const handleRenewalToggle = (studentId: number) => {
-    setStudents(prevStudents =>
-      prevStudents.map(student =>
-        student.id === studentId ? { ...student, renewed: !student.renewed } : student
-      )
-    );
-    // Data will be saved to localStorage by the useEffect hook watching `students`
+    // This function should ideally not be callable from the main user view.
+    // We achieve this by disabling the checkbox in TeacherDetails via `isAdminView={false}`.
+    console.warn("Renewal toggle attempted from non-admin view for student ID:", studentId);
+    // setStudents(prevStudents =>
+    //   prevStudents.map(student =>
+    //     student.id === studentId ? { ...student, renewed: !student.renewed } : student
+    //   )
+    // );
   };
 
    // Memoize calculations to avoid re-computing on every render
@@ -150,7 +150,14 @@ export default function Home() {
              <span className="block text-sm md:inline md:ml-2 text-muted-foreground font-normal">Vildan Koleji Ortaokulu</span>
           </h1>
         </div>
-         <UploadForm onDataUpload={handleDataUpload} />
+         {/* Removed UploadForm */}
+         {/* Add a link/button to the admin panel */}
+         <Link href="/admin" passHref legacyBehavior>
+            <Button variant="outline" size="sm">
+                <UserCog className="mr-2 h-4 w-4" />
+                Admin Paneli
+            </Button>
+         </Link>
       </header>
 
       {error && (
@@ -210,7 +217,7 @@ export default function Home() {
                 {teachersWithPercentage.length > 0 ? (
                   <TeacherLeaderboard teachers={teachersWithPercentage} />
                 ) : (
-                   <p className="text-muted-foreground text-center py-4">Liderlik tablosunu görmek için lütfen önce Excel dosyasını yükleyin.</p>
+                   <p className="text-muted-foreground text-center py-4">Liderlik tablosunu görmek için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
                 )}
               </CardContent>
             </Card>
@@ -220,17 +227,18 @@ export default function Home() {
             <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
               <CardHeader>
                 <CardTitle>Öğretmen Özel Görünümü</CardTitle>
-                <CardDescription>Bir öğretmen seçerek sorumlu olduğu öğrencilerin kayıt yenileme durumlarını görüntüleyin ve güncelleyin.</CardDescription>
+                <CardDescription>Bir öğretmen seçerek sorumlu olduğu öğrencilerin kayıt yenileme durumlarını görüntüleyin.</CardDescription>
               </CardHeader>
               <CardContent>
                 {teachers.length > 0 && students.length > 0 ? (
                   <TeacherDetails
                     teachers={teachers}
                     students={students}
-                    onRenewalToggle={handleRenewalToggle}
+                    onRenewalToggle={handleRenewalToggle} // Pass the function, but it will be disabled internally
+                    isAdminView={false} // Explicitly set to false for this view
                   />
                  ) : (
-                   <p className="text-muted-foreground text-center py-4">Öğretmen detaylarını görmek için lütfen önce Excel dosyasını yükleyin.</p>
+                   <p className="text-muted-foreground text-center py-4">Öğretmen detaylarını görmek için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
                 )}
               </CardContent>
             </Card>
@@ -251,7 +259,7 @@ export default function Home() {
                          overallPercentage={overallPercentage}
                        />
                      ) : (
-                       <p className="text-muted-foreground text-center py-4">Okul geneli ilerlemesini görmek için lütfen önce Excel dosyasını yükleyin.</p>
+                       <p className="text-muted-foreground text-center py-4">Okul geneli ilerlemesini görmek için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
                      )}
                  </div>
               </CardContent>

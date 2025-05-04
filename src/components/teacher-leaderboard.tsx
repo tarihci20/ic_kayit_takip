@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -6,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { cn } from "@/lib/utils"; // Import cn
 
 interface TeacherLeaderboardProps {
   teachers: TeacherWithStats[];
@@ -19,16 +21,6 @@ export function TeacherLeaderboard({ teachers }: TeacherLeaderboardProps) {
     if (index === 2) return <Trophy className="h-5 w-5 text-orange-600" aria-label="Üçüncü"/>;
     return <span className="w-5 text-center text-muted-foreground">{index + 1}</span>; // Rank number for others
   };
-
-  // Example: Store previous ranking in state or fetch from history if needed
-  // For now, we'll just show rank without change indicators
-  // const getRankChange = (teacherId: number): React.ReactNode => {
-  //   // Placeholder logic - replace with actual rank change calculation
-  //   const change = Math.random() > 0.6 ? 1 : (Math.random() > 0.3 ? -1 : 0);
-  //   if (change > 0) return <ArrowUp className="h-4 w-4 text-accent" />;
-  //   if (change < 0) return <ArrowDown className="h-4 w-4 text-destructive" />;
-  //   return <Minus className="h-4 w-4 text-muted-foreground" />;
-  // };
 
   return (
     <div className="overflow-x-auto">
@@ -54,9 +46,22 @@ export function TeacherLeaderboard({ teachers }: TeacherLeaderboardProps) {
                   <Progress
                     value={teacher.renewalPercentage}
                     className="h-3 flex-grow"
+                    indicatorClassName={cn(
+                        teacher.renewalPercentage >= 90 ? 'bg-accent' : teacher.renewalPercentage >= 50 ? 'bg-primary' : 'bg-destructive',
+                         'transition-all duration-500 ease-out'
+                    )} // Use color based on percentage for progress bar
                     aria-label={`${teacher.name} yenileme yüzdesi ${teacher.renewalPercentage}`}
                    />
-                  <Badge variant={teacher.renewalPercentage > 80 ? "default" : teacher.renewalPercentage > 50 ? "secondary" : "outline"} className={`w-16 text-center justify-center transition-colors duration-300 ${teacher.renewalPercentage >= 90 ? 'bg-accent text-accent-foreground' : ''}`}>
+                  <Badge
+                    variant="outline" // Use outline as base
+                    className={cn(
+                        'w-16 text-center justify-center transition-colors duration-300',
+                        teacher.renewalPercentage >= 90 ? 'bg-accent text-accent-foreground border-transparent' // High percentage
+                        : teacher.renewalPercentage >= 50 ? 'bg-primary text-primary-foreground border-transparent' // Medium percentage
+                        : 'bg-destructive text-destructive-foreground border-transparent' // Low percentage
+                        // Removed 'secondary' variant usage
+                    )}
+                  >
                      {teacher.renewalPercentage}%
                   </Badge>
                 </div>
