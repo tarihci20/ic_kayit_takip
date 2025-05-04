@@ -17,33 +17,32 @@ interface TeacherDetailsProps {
 }
 
 export function TeacherDetails({ teachers, students, onRenewalToggle }: TeacherDetailsProps) {
-  const [selectedTeacherId, setSelectedTeacherId] = useState<string | undefined>(teachers[0]?.id.toString());
+  // Store selected teacher's name instead of ID
+  const [selectedTeacherName, setSelectedTeacherName] = useState<string | undefined>(teachers[0]?.name);
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleTeacherChange = (value: string) => {
-    setSelectedTeacherId(value);
+    setSelectedTeacherName(value);
     setSearchTerm(''); // Reset search when teacher changes
   };
 
   const selectedTeacherStudents = useMemo(() => {
-    if (!selectedTeacherId) return [];
-    const teacherIdNum = parseInt(selectedTeacherId, 10);
+    if (!selectedTeacherName) return [];
     return students
-      .filter(student => student.teacherId === teacherIdNum)
+      .filter(student => student.teacherName === selectedTeacherName) // Filter by teacherName
       .filter(student => student.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [selectedTeacherId, students, searchTerm]);
+  }, [selectedTeacherName, students, searchTerm]);
 
-  const calculateTeacherPercentage = (teacherId: number | undefined): number => {
-      if (!teacherId) return 0;
-      const teacherStudentsAll = students.filter(student => student.teacherId === teacherId);
+  const calculateTeacherPercentage = (teacherName: string | undefined): number => {
+      if (!teacherName) return 0;
+      const teacherStudentsAll = students.filter(student => student.teacherName === teacherName); // Filter by teacherName
       if (teacherStudentsAll.length === 0) return 0;
       const renewedCount = teacherStudentsAll.filter(student => student.renewed).length;
       return Math.round((renewedCount / teacherStudentsAll.length) * 100);
   };
 
-  const currentTeacherPercentage = selectedTeacherId ? calculateTeacherPercentage(parseInt(selectedTeacherId, 10)) : 0;
-  const currentTeacherStudentCount = selectedTeacherId ? students.filter(s => s.teacherId === parseInt(selectedTeacherId, 10)).length : 0;
-  const currentTeacherName = teachers.find(t => t.id.toString() === selectedTeacherId)?.name;
+  const currentTeacherPercentage = calculateTeacherPercentage(selectedTeacherName);
+  const currentTeacherStudentCount = selectedTeacherName ? students.filter(s => s.teacherName === selectedTeacherName).length : 0;
 
 
   return (
@@ -51,7 +50,7 @@ export function TeacherDetails({ teachers, students, onRenewalToggle }: TeacherD
       <div className="flex flex-col md:flex-row md:items-center gap-4">
         <div className="flex-grow md:flex-grow-0 md:w-1/3">
           <Label htmlFor="teacher-select" className="mb-2 block text-sm font-medium text-foreground">Öğretmen Seçin</Label>
-          <Select onValueChange={handleTeacherChange} value={selectedTeacherId} disabled={teachers.length === 0}>
+          <Select onValueChange={handleTeacherChange} value={selectedTeacherName} disabled={teachers.length === 0}>
             <SelectTrigger id="teacher-select" className="w-full">
               <div className="flex items-center gap-2">
                  <User className="h-4 w-4 text-muted-foreground" />
@@ -60,7 +59,8 @@ export function TeacherDetails({ teachers, students, onRenewalToggle }: TeacherD
             </SelectTrigger>
             <SelectContent>
               {teachers.map((teacher) => (
-                <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                // Use teacher name as value
+                <SelectItem key={teacher.id} value={teacher.name}>
                   {teacher.name}
                 </SelectItem>
               ))}
@@ -78,16 +78,16 @@ export function TeacherDetails({ teachers, students, onRenewalToggle }: TeacherD
              value={searchTerm}
              onChange={(e) => setSearchTerm(e.target.value)}
              className="pl-8 w-full" // Add padding for icon
-             disabled={!selectedTeacherId}
+             disabled={!selectedTeacherName} // Disable if no teacher selected
            />
          </div>
       </div>
 
-      {selectedTeacherId && (
+      {selectedTeacherName && ( // Check if a teacher name is selected
         <div>
             <div className="mb-4 p-4 bg-secondary rounded-lg border flex flex-col md:flex-row justify-between items-center">
                 <div>
-                     <h3 className="text-lg font-semibold text-primary">{currentTeacherName}</h3>
+                     <h3 className="text-lg font-semibold text-primary">{selectedTeacherName}</h3> {/* Display selected teacher name */}
                      <p className="text-sm text-muted-foreground">Sorumlu Olduğu Öğrenci Sayısı: {currentTeacherStudentCount}</p>
                 </div>
                 <div className="text-right mt-2 md:mt-0">
@@ -142,10 +142,10 @@ export function TeacherDetails({ teachers, students, onRenewalToggle }: TeacherD
         </div>
       )}
 
-      {!selectedTeacherId && teachers.length > 0 && (
+      {!selectedTeacherName && teachers.length > 0 && (
         <p className="text-center text-muted-foreground py-6">Öğrencileri görmek için lütfen bir öğretmen seçin.</p>
       )}
-        {!selectedTeacherId && teachers.length === 0 && (
+        {!selectedTeacherName && teachers.length === 0 && (
             <p className="text-center text-muted-foreground py-6">Başlamak için lütfen Excel dosyasını yükleyin.</p>
         )}
     </div>

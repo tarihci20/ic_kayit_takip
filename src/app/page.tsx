@@ -108,14 +108,24 @@ export default function Home() {
 
    // Memoize calculations to avoid re-computing on every render
    const teachersWithPercentage = React.useMemo(() => {
+      // Group students by teacher name first
+      const studentsByTeacher: Record<string, Student[]> = students.reduce((acc, student) => {
+        if (!acc[student.teacherName]) {
+          acc[student.teacherName] = [];
+        }
+        acc[student.teacherName].push(student);
+        return acc;
+      }, {} as Record<string, Student[]>);
+
+
       return teachers.map(teacher => {
-      const teacherStudents = students.filter(student => student.teacherId === teacher.id);
-      const studentCount = teacherStudents.length;
-      if (studentCount === 0) return { ...teacher, renewalPercentage: 0, studentCount: 0 };
-      const renewedCount = teacherStudents.filter(student => student.renewed).length;
-      const renewalPercentage = Math.round((renewedCount / studentCount) * 100);
-      return { ...teacher, renewalPercentage, studentCount };
-    }).sort((a, b) => b.renewalPercentage - a.renewalPercentage); // Sort by percentage descending
+        const teacherStudents = studentsByTeacher[teacher.name] || []; // Get students by teacher name
+        const studentCount = teacherStudents.length;
+        if (studentCount === 0) return { ...teacher, renewalPercentage: 0, studentCount: 0 };
+        const renewedCount = teacherStudents.filter(student => student.renewed).length;
+        const renewalPercentage = Math.round((renewedCount / studentCount) * 100);
+        return { ...teacher, renewalPercentage, studentCount };
+      }).sort((a, b) => b.renewalPercentage - a.renewalPercentage); // Sort by percentage descending
    }, [teachers, students]);
 
   const overallPercentage = React.useMemo(() => {

@@ -1,7 +1,7 @@
 export interface Student {
   id: number;
   name: string;
-  teacherId: number;
+  teacherName: string; // Changed from teacherId: number
   renewed: boolean;
 }
 
