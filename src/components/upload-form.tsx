@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, type ChangeEvent } from 'react';
@@ -7,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Student, Teacher } from '@/types';
-import { UploadCloud, FileCheck2, AlertTriangle } from 'lucide-react';
+import { UploadCloud, FileCheck2, AlertTriangle, Download } from 'lucide-react';
+import Link from 'next/link'; // Import Link for the download
 
 interface UploadFormProps {
   onDataUpload: (teachers: Teacher[], students: Student[]) => void;
@@ -43,11 +45,13 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
         const teacherJson = XLSX.utils.sheet_to_json<any>(teacherSheet);
 
         const teachers: Teacher[] = teacherJson.map((row: any, index: number) => {
-          const teacherId = row['Öğretmen ID'] ?? row['ID'] ?? row['id'] ?? index + 1; // Check common ID headers or use index
-          const teacherName = row['Öğretmen Adı'] ?? row['Ad Soyad'] ?? row['Name'];
+          // Prioritize specific column names, then fall back to common alternatives or index
+          const teacherId = row['Öğretmen ID'] ?? row['Ogretmen ID'] ?? row['Teacher ID'] ?? row['ID'] ?? row['id'];
+          const teacherName = row['Öğretmen Adı'] ?? row['Ogretmen Adi'] ?? row['Teacher Name'] ?? row['Ad Soyad'] ?? row['Name'];
 
-          if (!teacherId || !teacherName) {
-            throw new Error(`Öğretmenler sayfasının ${index + 2}. satırında eksik ID veya Ad bilgisi var.`);
+          if (teacherId === undefined || teacherId === null || teacherName === undefined || teacherName === null) {
+              console.warn(`Öğretmenler ${index + 2}. satırda eksik ID veya Ad:`, row);
+              throw new Error(`Öğretmenler sayfasının ${index + 2}. satırında 'Öğretmen ID' veya 'Öğretmen Adı' sütunları eksik veya boş.`);
           }
           return { id: Number(teacherId), name: String(teacherName) };
         });
@@ -59,13 +63,14 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
         const studentJson = XLSX.utils.sheet_to_json<any>(studentSheet);
 
         const students: Student[] = studentJson.map((row: any, index: number) => {
-          const studentId = row['Öğrenci ID'] ?? row['ID'] ?? row['id'] ?? index + 1; // Check common ID headers or use index
-          const studentName = row['Öğrenci Adı'] ?? row['Ad Soyad'] ?? row['Name'];
-          const teacherId = row['Öğretmen ID'] ?? row['Teacher ID'];
-          const renewedStatus = row['Kayıt Yeniledi'] ?? row['Yeniledi'] ?? row['Renewed']; // Check common renewal headers
+          const studentId = row['Öğrenci ID'] ?? row['Ogrenci ID'] ?? row['Student ID'] ?? row['ID'] ?? row['id'];
+          const studentName = row['Öğrenci Adı'] ?? row['Ogrenci Adi'] ?? row['Student Name'] ?? row['Ad Soyad'] ?? row['Name'];
+          const teacherId = row['Öğretmen ID'] ?? row['Ogretmen ID'] ?? row['Teacher ID'];
+          const renewedStatus = row['Kayıt Yeniledi'] ?? row['Kayit Yeniledi'] ?? row['Renewed'] ?? row['Yeniledi']; // Check common renewal headers
 
-           if (!studentId || !studentName || teacherId === undefined) {
-              throw new Error(`Öğrenciler sayfasının ${index + 2}. satırında eksik ID, Ad veya Öğretmen ID bilgisi var.`);
+           if (studentId === undefined || studentId === null || studentName === undefined || studentName === null || teacherId === undefined || teacherId === null) {
+              console.warn(`Öğrenciler ${index + 2}. satırda eksik ID, Ad veya Öğretmen ID:`, row);
+              throw new Error(`Öğrenciler sayfasının ${index + 2}. satırında 'Öğrenci ID', 'Öğrenci Adı' veya 'Öğretmen ID' sütunları eksik veya boş.`);
           }
 
           // Ensure teacher exists
@@ -77,7 +82,8 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
            let renewed = false;
            if (renewedStatus !== undefined && renewedStatus !== null) {
                 const lowerStatus = String(renewedStatus).toLowerCase().trim();
-                renewed = ['true', 'evet', 'yeniledi', '1', 'yes', 'x', '✓'].includes(lowerStatus);
+                // Define truthy values explicitly
+                renewed = ['true', 'evet', 'yeniledi', '1', 'yes', 'x', '✓', 'yapıldı', 'tamamlandı'].includes(lowerStatus);
            }
 
 
@@ -93,14 +99,14 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
         toast({
           title: "Başarılı!",
           description: `${teachers.length} öğretmen ve ${students.length} öğrenci verisi başarıyla yüklendi.`,
-          variant: "default", // Use default (blue) for success as accent is green
+          variant: "default",
           action: <FileCheck2 className="h-5 w-5 text-primary" />,
         });
         setError(null);
 
       } catch (err: any) {
         console.error("Excel işleme hatası:", err);
-        const errorMessage = err.message || "Excel dosyası işlenirken bilinmeyen bir hata oluştu. Lütfen dosya formatını kontrol edin (Sütunlar: Öğretmen ID, Öğretmen Adı | Öğrenci ID, Öğrenci Adı, Öğretmen ID, Kayıt Yeniledi).";
+        const errorMessage = err.message || "Excel dosyası işlenirken bilinmeyen bir hata oluştu. Lütfen dosya formatını ve sütun başlıklarını ('Öğretmen ID', 'Öğretmen Adı', 'Öğrenci ID', 'Öğrenci Adı', 'Öğretmen ID', 'Kayıt Yeniledi') kontrol edin.";
         setError(errorMessage);
         setFileName(null); // Reset file name on error
         onDataUpload([], []); // Clear existing data on error
@@ -125,6 +131,12 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
          if (fileInputRef.current) {
             fileInputRef.current.value = '';
          }
+         toast({
+           title: "Hata!",
+           description: "Dosya okunamadı.",
+           variant: "destructive",
+           action: <AlertTriangle className="h-5 w-5" />,
+         });
     };
     reader.readAsArrayBuffer(file);
   };
@@ -139,32 +151,43 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
        <Input
         id="excel-upload"
         type="file"
-        accept=".xlsx, .xls"
+        accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" // More specific MIME types
         onChange={handleFileChange}
         className="hidden" // Hide the default input
         ref={fileInputRef}
         disabled={isUploading}
       />
-       <Button onClick={triggerFileInput} disabled={isUploading} variant="outline" className="w-full md:w-auto">
-        {isUploading ? (
-            <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Yükleniyor...
-            </>
-        ) : (
-            <>
-               <UploadCloud className="mr-2 h-4 w-4" />
-               {fileName ? `Dosya Seçildi: ${fileName.substring(0, 20)}...` : "Excel Yükle (.xlsx, .xls)"}
-            </>
-        )}
-       </Button>
+      <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+        <Button onClick={triggerFileInput} disabled={isUploading} variant="outline" className="flex-grow sm:flex-grow-0">
+          {isUploading ? (
+              <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Yükleniyor...
+              </>
+          ) : (
+              <>
+                 <UploadCloud className="mr-2 h-4 w-4" />
+                 {fileName ? `Dosya: ${fileName.substring(0, 25)}${fileName.length > 25 ? '...' : ''}` : "Excel Yükle"}
+              </>
+          )}
+        </Button>
+         {/* Download Template Link/Button */}
+         <Button variant="secondary" asChild>
+           <Link href="/renewal_template.xlsx" download="VildanKoleji_KayitYenileme_Sablon.xlsx">
+             <Download className="mr-2 h-4 w-4" />
+             Şablonu İndir
+           </Link>
+         </Button>
+      </div>
+
        {error && <p className="text-sm text-destructive mt-1">{error}</p>}
-        <p className="text-xs text-muted-foreground mt-1">
-          Format: Öğretmenler (ID, Ad), Öğrenciler (ID, Ad, Öğretmen ID, Kayıt Yeniledi [Evet/Hayır/1/0/Boş])
+        <p className="text-xs text-muted-foreground mt-1 max-w-md">
+          Gerekli sütunlar: Öğretmenler(<b>Öğretmen ID, Öğretmen Adı</b>), Öğrenciler(<b>Öğrenci ID, Öğrenci Adı, Öğretmen ID, Kayıt Yeniledi</b>). Yenileme durumu için 'Evet', '1', 'X' vb. kullanabilirsiniz.
        </p>
+
     </div>
   );
 }
