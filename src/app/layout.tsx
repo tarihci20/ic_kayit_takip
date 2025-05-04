@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster"; // Import Toaster
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' }); // Define Inter font
 
 export const metadata: Metadata = {
-  title: 'RenewalRace - Vildan Koleji', // Updated title
+  title: 'Kayıt Takip - Vildan Koleji', // Updated title to "Kayıt Takip"
   description: 'Öğrenci kayıt yenileme takip ve yarışma sistemi', // Updated description
 };
 
@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr" suppressHydrationWarning>
+    <html lang="tr" suppressHydrationWarning> {/* Add suppressHydrationWarning to handle potential minor hydration mismatches */}
       <body className={`${inter.variable} font-sans antialiased`}> {/* Use Inter font */}
         {children}
         <Toaster /> {/* Add Toaster component here */}

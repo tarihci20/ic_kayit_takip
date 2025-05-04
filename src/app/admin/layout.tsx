@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Admin - RenewalRace',
+  title: 'Admin - Kayıt Takip', // Updated title to "Kayıt Takip"
   description: 'Yönetim paneli - Öğrenci kayıt yenileme takip sistemi',
 };
 

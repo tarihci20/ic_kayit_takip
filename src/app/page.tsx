@@ -11,8 +11,9 @@ import { SchoolProgress } from '@/components/school-progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label'; // Import Label for SchoolProgress explicit label
 import Link from 'next/link'; // Import Link for Admin Panel
+import Image from 'next/image'; // Import Next Image
 import { Button } from '@/components/ui/button'; // Import Button
-import { UserCog, Star } from 'lucide-react'; // Import icon for admin link and Star icon for logo
+import { UserCog } from 'lucide-react'; // Removed Star import
 
 export default function Home() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -124,15 +125,17 @@ export default function Home() {
     <div className="min-h-screen bg-secondary p-4 md:p-8">
       <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center space-x-3 flex-shrink-0">
-           {/* Replace generic SVG with Star icon */}
-           <Star className="h-10 w-10 text-vildan-burgundy fill-current" />
-           {/* <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-vildan-burgundy">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg> */}
+             {/* Replace Star icon with placeholder Image */}
+             <Image
+               src="https://picsum.photos/40/40" // Placeholder, replace with actual logo path
+               alt="Vildan Koleji Logo"
+               width={40}
+               height={40}
+               className="rounded-full" // Optional styling
+               data-ai-hint="logo vildan koleji" // Hint for AI to find the user's logo
+             />
           <h1 className="text-2xl md:text-3xl font-bold text-primary">
-            Renewal<span className="text-vildan-burgundy">Race</span>
+            Kayıt <span className="text-vildan-burgundy">Takip</span> {/* Updated text */}
              <span className="block text-sm md:inline md:ml-2 text-muted-foreground font-normal">Vildan Koleji Ortaokulu</span>
           </h1>
         </div>
