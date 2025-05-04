@@ -1,15 +1,14 @@
-
 "use client";
 
 import React, { useState, useRef, type ChangeEvent } from 'react';
 import * as XLSX from 'xlsx';
-import { Button, buttonVariants } from "@/components/ui/button"; // Import buttonVariants
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Student, Teacher } from '@/types';
 import { UploadCloud, FileCheck2, AlertTriangle, Download } from 'lucide-react';
-import { cn } from "@/lib/utils"; // Import cn
+import { cn } from "@/lib/utils";
 
 interface UploadFormProps {
   onDataUpload: (teachers: Teacher[], students: Student[]) => void;
@@ -40,20 +39,18 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
 
         // Process Teachers sheet
         const teacherSheetName = workbook.SheetNames.find(name => name.toLowerCase().includes('öğretmen'));
-        if (!teacherSheetName) throw new Error("Excel dosyasında 'Öğretmenler' sayfası bulunamadı.");
+        if (!teacherSheetName) throw new Error("Excel dosyasında 'Öğretmenler' adlı bir sayfa bulunamadı. Lütfen sayfa adını kontrol edin.");
         const teacherSheet = workbook.Sheets[teacherSheetName];
-        const teacherJson = XLSX.utils.sheet_to_json<any>(teacherSheet);
+        const teacherJson = XLSX.utils.sheet_to_json<any>(teacherSheet, { defval: null }); // Use defval: null for better handling of empty cells
 
         const teachers: Teacher[] = teacherJson.map((row: any, index: number) => {
-          // Prioritize specific column names, then fall back to common alternatives or index
           const teacherId = row['Öğretmen ID'] ?? row['Ogretmen ID'] ?? row['Teacher ID'] ?? row['ID'] ?? row['id'];
           const teacherName = row['Öğretmen Adı'] ?? row['Ogretmen Adi'] ?? row['Teacher Name'] ?? row['Ad Soyad'] ?? row['Name'];
 
-          if (teacherId === undefined || teacherId === null || teacherName === undefined || teacherName === null) {
+          if (teacherId === null || teacherName === null) {
               console.warn(`Öğretmenler ${index + 2}. satırda eksik ID veya Ad:`, row);
               throw new Error(`Öğretmenler sayfasının ${index + 2}. satırında 'Öğretmen ID' veya 'Öğretmen Adı' sütunları eksik veya boş.`);
           }
-          // Ensure teacherId is a number
           const parsedTeacherId = Number(teacherId);
           if (isNaN(parsedTeacherId)) {
              throw new Error(`Öğretmenler sayfasının ${index + 2}. satırındaki 'Öğretmen ID' (${teacherId}) geçerli bir sayı değil.`);
@@ -63,22 +60,21 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
 
         // Process Students sheet
         const studentSheetName = workbook.SheetNames.find(name => name.toLowerCase().includes('öğrenci'));
-         if (!studentSheetName) throw new Error("Excel dosyasında 'Öğrenciler' sayfası bulunamadı.");
+         if (!studentSheetName) throw new Error("Excel dosyasında 'Öğrenciler' adlı bir sayfa bulunamadı. Lütfen sayfa adını kontrol edin.");
         const studentSheet = workbook.Sheets[studentSheetName];
-        const studentJson = XLSX.utils.sheet_to_json<any>(studentSheet);
+        const studentJson = XLSX.utils.sheet_to_json<any>(studentSheet, { defval: null }); // Use defval: null
 
         const students: Student[] = studentJson.map((row: any, index: number) => {
           const studentId = row['Öğrenci ID'] ?? row['Ogrenci ID'] ?? row['Student ID'] ?? row['ID'] ?? row['id'];
           const studentName = row['Öğrenci Adı'] ?? row['Ogrenci Adi'] ?? row['Student Name'] ?? row['Ad Soyad'] ?? row['Name'];
           const teacherIdRaw = row['Öğretmen ID'] ?? row['Ogretmen ID'] ?? row['Teacher ID'];
-          const renewedStatus = row['Kayıt Yeniledi'] ?? row['Kayit Yeniledi'] ?? row['Renewed'] ?? row['Yeniledi']; // Check common renewal headers
+          const renewedStatus = row['Kayıt Yeniledi'] ?? row['Kayit Yeniledi'] ?? row['Renewed'] ?? row['Yeniledi'];
 
-           if (studentId === undefined || studentId === null || studentName === undefined || studentName === null || teacherIdRaw === undefined || teacherIdRaw === null) {
+           if (studentId === null || studentName === null || teacherIdRaw === null) {
               console.warn(`Öğrenciler ${index + 2}. satırda eksik ID, Ad veya Öğretmen ID:`, row);
               throw new Error(`Öğrenciler sayfasının ${index + 2}. satırında 'Öğrenci ID', 'Öğrenci Adı' veya 'Öğretmen ID' sütunları eksik veya boş.`);
           }
 
-          // Ensure IDs are numbers
            const parsedStudentId = Number(studentId);
            const parsedTeacherId = Number(teacherIdRaw);
            if (isNaN(parsedStudentId)) {
@@ -88,20 +84,15 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
               throw new Error(`Öğrenciler sayfasının ${index + 2}. satırındaki 'Öğretmen ID' (${teacherIdRaw}) geçerli bir sayı değil.`);
            }
 
-
-          // Ensure teacher exists
            if (!teachers.some(t => t.id === parsedTeacherId)) {
              throw new Error(`Öğrenciler sayfasının ${index + 2}. satırındaki Öğretmen ID (${parsedTeacherId}) Öğretmenler listesinde bulunamadı.`);
            }
 
-           // Interpret renewal status (handle various truthy/falsy inputs)
            let renewed = false;
-           if (renewedStatus !== undefined && renewedStatus !== null) {
+           if (renewedStatus !== null) {
                 const lowerStatus = String(renewedStatus).toLowerCase().trim();
-                // Define truthy values explicitly
-                renewed = ['true', 'evet', 'yeniledi', '1', 'yes', 'x', '✓', 'yapıldı', 'tamamlandı', '✓'].includes(lowerStatus);
+                renewed = ['true', 'evet', 'yeniledi', '1', 'yes', 'x', '✓', 'yapıldı', 'tamamlandı', '✓', 'ok'].includes(lowerStatus);
            }
-
 
           return {
             id: parsedStudentId,
@@ -111,23 +102,22 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
           };
         });
 
-        // Additional validation: Check for duplicate student IDs
+        // --- Data Validation ---
         const studentIds = new Set<number>();
         for (const student of students) {
             if (studentIds.has(student.id)) {
-                throw new Error(`Öğrenciler sayfasında mükerrer Öğrenci ID bulundu: ${student.id}`);
+                throw new Error(`Öğrenciler sayfasında mükerrer Öğrenci ID bulundu: ${student.id}. Lütfen kontrol edin.`);
             }
             studentIds.add(student.id);
         }
-
-        // Additional validation: Check for duplicate teacher IDs
         const teacherIds = new Set<number>();
         for (const teacher of teachers) {
              if (teacherIds.has(teacher.id)) {
-                 throw new Error(`Öğretmenler sayfasında mükerrer Öğretmen ID bulundu: ${teacher.id}`);
+                 throw new Error(`Öğretmenler sayfasında mükerrer Öğretmen ID bulundu: ${teacher.id}. Lütfen kontrol edin.`);
              }
              teacherIds.add(teacher.id);
         }
+        // --- End Validation ---
 
 
         onDataUpload(teachers, students);
@@ -141,10 +131,10 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
 
       } catch (err: any) {
         console.error("Excel işleme hatası:", err);
-        const errorMessage = err.message || "Excel dosyası işlenirken bilinmeyen bir hata oluştu. Lütfen dosya formatını ve sütun başlıklarını ('Öğretmen ID', 'Öğretmen Adı', 'Öğrenci ID', 'Öğrenci Adı', 'Öğretmen ID', 'Kayıt Yeniledi') kontrol edin.";
+        const errorMessage = err.message || "Excel dosyası işlenirken bilinmeyen bir hata oluştu. Lütfen dosya formatını, sayfa adlarını ('Öğretmenler', 'Öğrenciler') ve gerekli sütun başlıklarını kontrol edin.";
         setError(errorMessage);
-        setFileName(null); // Reset file name on error
-        onDataUpload([], []); // Clear existing data on error
+        setFileName(null);
+        onDataUpload([], []);
         toast({
           title: "Yükleme Başarısız!",
           description: errorMessage,
@@ -153,7 +143,6 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
         });
       } finally {
         setIsUploading(false);
-         // Reset file input to allow re-uploading the same file
          if (fileInputRef.current) {
             fileInputRef.current.value = '';
          }
@@ -180,15 +169,59 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
      fileInputRef.current?.click();
    };
 
+   const handleDownloadTemplate = () => {
+    try {
+      // Define template data
+      const teachersTemplate = [
+        { 'Öğretmen ID': 101, 'Öğretmen Adı': 'Ayşe Yılmaz' },
+        { 'Öğretmen ID': 102, 'Öğretmen Adı': 'Mehmet Öztürk' },
+      ];
+      const studentsTemplate = [
+        { 'Öğrenci ID': 1, 'Öğrenci Adı': 'Ali Veli', 'Öğretmen ID': 101, 'Kayıt Yeniledi': 'Evet' },
+        { 'Öğrenci ID': 2, 'Öğrenci Adı': 'Fatma Kaya', 'Öğretmen ID': 101, 'Kayıt Yeniledi': 'Hayır' },
+        { 'Öğrenci ID': 3, 'Öğrenci Adı': 'Hasan Demir', 'Öğretmen ID': 102, 'Kayıt Yeniledi': '1' },
+        { 'Öğrenci ID': 4, 'Öğrenci Adı': 'Zeynep Çelik', 'Öğretmen ID': 102, 'Kayıt Yeniledi': '' }, // Example for not renewed
+         { 'Öğrenci ID': 5, 'Öğrenci Adı': 'Emre Arslan', 'Öğretmen ID': 101, 'Kayıt Yeniledi': 'X' }, // Example for renewed
+      ];
+
+      // Create worksheets
+      const teacherWs = XLSX.utils.json_to_sheet(teachersTemplate);
+      const studentWs = XLSX.utils.json_to_sheet(studentsTemplate);
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, teacherWs, 'Öğretmenler');
+      XLSX.utils.book_append_sheet(wb, studentWs, 'Öğrenciler');
+
+      // Download the file
+      XLSX.writeFile(wb, 'VildanKoleji_KayitYenileme_Sablon.xlsx');
+
+      toast({
+        title: "Şablon İndirildi",
+        description: "Excel şablonu başarıyla oluşturuldu ve indirildi.",
+        variant: "default",
+      });
+
+    } catch (error) {
+       console.error("Şablon oluşturma hatası:", error);
+       toast({
+          title: "Hata!",
+          description: "Şablon oluşturulurken bir hata oluştu.",
+          variant: "destructive",
+       });
+    }
+   };
+
+
   return (
     <div className="flex flex-col items-start space-y-2 w-full md:w-auto">
        <Label htmlFor="excel-upload" className="sr-only">Excel Dosyası Yükle</Label>
        <Input
         id="excel-upload"
         type="file"
-        accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" // More specific MIME types
+        accept=".xlsx, .xls, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
         onChange={handleFileChange}
-        className="hidden" // Hide the default input
+        className="hidden"
         ref={fileInputRef}
         disabled={isUploading}
       />
@@ -209,20 +242,16 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
               </>
           )}
         </Button>
-         {/* Download Template Link/Button - use a styled anchor tag */}
-         <a
-           href="/renewal_template.xlsx"
-           download="VildanKoleji_KayitYenileme_Sablon.xlsx"
-           className={cn(buttonVariants({ variant: "secondary" }), "flex items-center")} // Apply button styles
-         >
+         {/* Use a Button to trigger the dynamic download */}
+         <Button onClick={handleDownloadTemplate} variant="secondary">
            <Download className="mr-2 h-4 w-4" />
            Şablonu İndir
-         </a>
+         </Button>
       </div>
 
        {error && <p className="text-sm text-destructive mt-1">{error}</p>}
         <p className="text-xs text-muted-foreground mt-1 max-w-md">
-          Gerekli sütunlar: Öğretmenler(<b>Öğretmen ID, Öğretmen Adı</b>), Öğrenciler(<b>Öğrenci ID, Öğrenci Adı, Öğretmen ID, Kayıt Yeniledi</b>). Yenileme durumu için 'Evet', '1', 'X', '✓' vb. kullanabilirsiniz. Boş veya 'Hayır', '0' vb. yenilenmemiş sayılır.
+          Excel'de 'Öğretmenler' ve 'Öğrenciler' adında iki sayfa olmalıdır. Gerekli sütunlar: Öğretmenler(<b>Öğretmen ID, Öğretmen Adı</b>), Öğrenciler(<b>Öğrenci ID, Öğrenci Adı, Öğretmen ID, Kayıt Yeniledi</b>). Yenileme durumu için 'Evet', '1', 'X', '✓' vb. kullanabilirsiniz. Boş veya 'Hayır', '0' vb. yenilenmemiş sayılır.
        </p>
 
     </div>
