@@ -3,13 +3,13 @@
 
 import React, { useState, useRef, type ChangeEvent } from 'react';
 import * as XLSX from 'xlsx';
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button"; // Import buttonVariants
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import type { Student, Teacher } from '@/types';
 import { UploadCloud, FileCheck2, AlertTriangle, Download } from 'lucide-react';
-import Link from 'next/link'; // Import Link for the download
+import { cn } from "@/lib/utils"; // Import cn
 
 interface UploadFormProps {
   onDataUpload: (teachers: Teacher[], students: Student[]) => void;
@@ -209,13 +209,15 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
               </>
           )}
         </Button>
-         {/* Download Template Link/Button - points to the file in the /public folder */}
-         <Button variant="secondary" asChild>
-           <Link href="/renewal_template.xlsx" download="VildanKoleji_KayitYenileme_Sablon.xlsx">
-             <Download className="mr-2 h-4 w-4" />
-             Şablonu İndir
-           </Link>
-         </Button>
+         {/* Download Template Link/Button - use a styled anchor tag */}
+         <a
+           href="/renewal_template.xlsx"
+           download="VildanKoleji_KayitYenileme_Sablon.xlsx"
+           className={cn(buttonVariants({ variant: "secondary" }), "flex items-center")} // Apply button styles
+         >
+           <Download className="mr-2 h-4 w-4" />
+           Şablonu İndir
+         </a>
       </div>
 
        {error && <p className="text-sm text-destructive mt-1">{error}</p>}
@@ -226,4 +228,3 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
     </div>
   );
 }
-
