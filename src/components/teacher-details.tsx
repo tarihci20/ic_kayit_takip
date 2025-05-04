@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Student, Teacher } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,35 +9,53 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { User, Search, CheckCircle2, XCircle } from 'lucide-react';
-import { cn } from "@/lib/utils"; // Import cn
+import { cn } from "@/lib/utils";
 
 interface TeacherDetailsProps {
   teachers: Teacher[];
   students: Student[];
   onRenewalToggle: (studentId: number) => void;
-  isAdminView?: boolean; // Add prop to differentiate admin view
+  isAdminView?: boolean;
+  initialTeacherName?: string; // Optional prop to pre-select teacher
 }
 
-export function TeacherDetails({ teachers, students, onRenewalToggle, isAdminView = false }: TeacherDetailsProps) {
-  // Store selected teacher's name instead of ID
-  const [selectedTeacherName, setSelectedTeacherName] = useState<string | undefined>(teachers[0]?.name);
+export function TeacherDetails({
+    teachers,
+    students,
+    onRenewalToggle,
+    isAdminView = false,
+    initialTeacherName
+}: TeacherDetailsProps) {
+  // Use initialTeacherName if provided, otherwise default to first teacher or undefined
+  const [selectedTeacherName, setSelectedTeacherName] = useState<string | undefined>(
+    initialTeacherName ?? teachers[0]?.name
+  );
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Update selected teacher if initialTeacherName changes (e.g., navigating between teacher pages)
+   useEffect(() => {
+       if (initialTeacherName) {
+           setSelectedTeacherName(initialTeacherName);
+           setSearchTerm(''); // Reset search when teacher changes via prop
+       }
+   }, [initialTeacherName]);
+
 
   const handleTeacherChange = (value: string) => {
     setSelectedTeacherName(value);
-    setSearchTerm(''); // Reset search when teacher changes
+    setSearchTerm(''); // Reset search when teacher changes via dropdown
   };
 
   const selectedTeacherStudents = useMemo(() => {
     if (!selectedTeacherName) return [];
     return students
-      .filter(student => student.teacherName === selectedTeacherName) // Filter by teacherName
+      .filter(student => student.teacherName === selectedTeacherName)
       .filter(student => student.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [selectedTeacherName, students, searchTerm]);
 
   const calculateTeacherPercentage = (teacherName: string | undefined): number => {
       if (!teacherName) return 0;
-      const teacherStudentsAll = students.filter(student => student.teacherName === teacherName); // Filter by teacherName
+      const teacherStudentsAll = students.filter(student => student.teacherName === teacherName);
       if (teacherStudentsAll.length === 0) return 0;
       const renewedCount = teacherStudentsAll.filter(student => student.renewed).length;
       return Math.round((renewedCount / teacherStudentsAll.length) * 100);
@@ -50,47 +67,49 @@ export function TeacherDetails({ teachers, students, onRenewalToggle, isAdminVie
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center gap-4">
-        <div className="flex-grow md:flex-grow-0 md:w-1/3">
-          <Label htmlFor="teacher-select" className="mb-2 block text-sm font-medium text-foreground">Öğretmen Seçin</Label>
-          <Select onValueChange={handleTeacherChange} value={selectedTeacherName} disabled={teachers.length === 0}>
-            <SelectTrigger id="teacher-select" className="w-full">
-              <div className="flex items-center gap-2">
-                 <User className="h-4 w-4 text-muted-foreground" />
-                 <SelectValue placeholder="Bir öğretmen seçin..." />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              {teachers.map((teacher) => (
-                // Use teacher name as value
-                <SelectItem key={teacher.id} value={teacher.name}>
-                  {teacher.name}
-                </SelectItem>
-              ))}
-               {teachers.length === 0 && <SelectItem value="no-teacher" disabled>Öğretmen yok</SelectItem>}
-            </SelectContent>
-          </Select>
-        </div>
-         <div className="relative flex-grow">
-           <Label htmlFor="student-search" className="mb-2 block text-sm font-medium text-foreground">Öğrenci Ara</Label>
-           <Search className="absolute left-2.5 top-[calc(1.5rem+0.5rem+2px)] h-4 w-4 text-muted-foreground" /> {/* Adjusted top positioning */}
-           <Input
-             id="student-search"
-             type="text"
-             placeholder="Öğrenci adıyla ara..."
-             value={searchTerm}
-             onChange={(e) => setSearchTerm(e.target.value)}
-             className="pl-8 w-full" // Add padding for icon
-             disabled={!selectedTeacherName} // Disable if no teacher selected
-           />
-         </div>
-      </div>
+       {/* Hide teacher select and search if initialTeacherName is provided (Teacher Detail Page context) */}
+       {!initialTeacherName && (
+           <div className="flex flex-col md:flex-row md:items-end gap-4">
+            <div className="flex-grow md:flex-grow-0 md:w-1/3">
+              <Label htmlFor="teacher-select" className="mb-2 block text-sm font-medium text-foreground">Öğretmen Seçin</Label>
+              <Select onValueChange={handleTeacherChange} value={selectedTeacherName} disabled={teachers.length === 0}>
+                <SelectTrigger id="teacher-select" className="w-full">
+                  <div className="flex items-center gap-2">
+                     <User className="h-4 w-4 text-muted-foreground" />
+                     <SelectValue placeholder="Bir öğretmen seçin..." />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.name}>
+                      {teacher.name}
+                    </SelectItem>
+                  ))}
+                   {teachers.length === 0 && <SelectItem value="no-teacher" disabled>Öğretmen yok</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+             <div className="relative flex-grow">
+               <Label htmlFor="student-search" className="mb-2 block text-sm font-medium text-foreground">Öğrenci Ara</Label>
+               <Search className="absolute left-2.5 top-[calc(50%)] -translate-y-1/2 h-4 w-4 text-muted-foreground" /> {/* Vertically center icon */}
+               <Input
+                 id="student-search"
+                 type="text"
+                 placeholder="Öğrenci adıyla ara..."
+                 value={searchTerm}
+                 onChange={(e) => setSearchTerm(e.target.value)}
+                 className="pl-8 w-full h-10" // Ensure input height matches SelectTrigger
+                 disabled={!selectedTeacherName}
+               />
+             </div>
+           </div>
+       )}
 
-      {selectedTeacherName && ( // Check if a teacher name is selected
+      {selectedTeacherName && (
         <div>
             <div className="mb-4 p-4 bg-secondary rounded-lg border flex flex-col md:flex-row justify-between items-center">
                 <div>
-                     <h3 className="text-lg font-semibold text-primary">{selectedTeacherName}</h3> {/* Display selected teacher name */}
+                     <h3 className="text-lg font-semibold text-primary">{selectedTeacherName}</h3>
                      <p className="text-sm text-muted-foreground">Sorumlu Olduğu Öğrenci Sayısı: {currentTeacherStudentCount}</p>
                 </div>
                 <div className="text-right mt-2 md:mt-0">
@@ -147,10 +166,11 @@ export function TeacherDetails({ teachers, students, onRenewalToggle, isAdminVie
         </div>
       )}
 
-      {!selectedTeacherName && teachers.length > 0 && (
+       {/* Show messages only if not in Teacher Detail Page context */}
+       {!initialTeacherName && !selectedTeacherName && teachers.length > 0 && (
         <p className="text-center text-muted-foreground py-6">Öğrencileri görmek için lütfen bir öğretmen seçin.</p>
       )}
-        {!selectedTeacherName && teachers.length === 0 && (
+      {!initialTeacherName && !selectedTeacherName && teachers.length === 0 && (
             <p className="text-center text-muted-foreground py-6">Başlamak için lütfen Excel dosyasını yükleyin.</p>
         )}
     </div>

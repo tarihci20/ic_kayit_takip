@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -6,8 +5,9 @@ import type { TeacherWithStats } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, ArrowUp, ArrowDown, Minus } from 'lucide-react';
-import { cn } from "@/lib/utils"; // Import cn
+import { Trophy } from 'lucide-react';
+import { cn } from "@/lib/utils";
+import Link from 'next/link'; // Import Link
 
 interface TeacherLeaderboardProps {
   teachers: TeacherWithStats[];
@@ -28,7 +28,6 @@ export function TeacherLeaderboard({ teachers }: TeacherLeaderboardProps) {
         <TableHeader>
           <TableRow>
             <TableHead className="w-[50px]">Sıra</TableHead>
-            {/* <TableHead className="w-[50px]">Değişim</TableHead> */}
             <TableHead>Öğretmen</TableHead>
             <TableHead className="w-[100px] text-center">Öğrenci Sayısı</TableHead>
             <TableHead className="w-[200px]">Yenileme Yüzdesi</TableHead>
@@ -38,8 +37,14 @@ export function TeacherLeaderboard({ teachers }: TeacherLeaderboardProps) {
           {teachers.map((teacher, index) => (
             <TableRow key={teacher.id} className="hover:bg-secondary/50 transition-colors duration-150">
               <TableCell className="font-medium flex items-center justify-center h-full">{getMedal(index)}</TableCell>
-              {/* <TableCell className="flex items-center justify-center h-full">{getRankChange(teacher.id)}</TableCell> */}
-              <TableCell>{teacher.name}</TableCell>
+              <TableCell>
+                {/* Wrap teacher name in Link */}
+                <Link href={`/teacher/${encodeURIComponent(teacher.name)}`} passHref legacyBehavior>
+                  <a className="text-primary hover:underline font-medium cursor-pointer">
+                    {teacher.name}
+                  </a>
+                </Link>
+              </TableCell>
               <TableCell className="text-center">{teacher.studentCount}</TableCell>
               <TableCell>
                 <div className="flex items-center space-x-2">
@@ -59,7 +64,6 @@ export function TeacherLeaderboard({ teachers }: TeacherLeaderboardProps) {
                         teacher.renewalPercentage >= 90 ? 'bg-accent text-accent-foreground border-transparent' // High percentage
                         : teacher.renewalPercentage >= 50 ? 'bg-primary text-primary-foreground border-transparent' // Medium percentage
                         : 'bg-destructive text-destructive-foreground border-transparent' // Low percentage
-                        // Removed 'secondary' variant usage
                     )}
                   >
                      {teacher.renewalPercentage}%

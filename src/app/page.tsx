@@ -1,13 +1,11 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
 import type { Student, Teacher } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-// Removed UploadForm import
 import { TeacherLeaderboard } from '@/components/teacher-leaderboard';
-import { TeacherDetails } from '@/components/teacher-details';
+// Removed TeacherDetails import as it's no longer used directly here
 import { SchoolProgress } from '@/components/school-progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label'; // Import Label for SchoolProgress explicit label
@@ -91,21 +89,6 @@ export default function Home() {
       }
   }, [teachers, students, isLoading]);
 
-
- // This function is now only relevant for the admin panel,
- // but keep it here for potential future use or refactoring into a shared hook/context.
- // The TeacherDetails component in this view will have checkboxes disabled.
-  const handleRenewalToggle = (studentId: number) => {
-    // This function should ideally not be callable from the main user view.
-    // We achieve this by disabling the checkbox in TeacherDetails via `isAdminView={false}`.
-    console.warn("Renewal toggle attempted from non-admin view for student ID:", studentId);
-    // setStudents(prevStudents =>
-    //   prevStudents.map(student =>
-    //     student.id === studentId ? { ...student, renewed: !student.renewed } : student
-    //   )
-    // );
-  };
-
    // Memoize calculations to avoid re-computing on every render
    const teachersWithPercentage = React.useMemo(() => {
       // Group students by teacher name first
@@ -150,7 +133,6 @@ export default function Home() {
              <span className="block text-sm md:inline md:ml-2 text-muted-foreground font-normal">Vildan Koleji Ortaokulu</span>
           </h1>
         </div>
-         {/* Removed UploadForm */}
          {/* Add a link/button to the admin panel */}
          <Link href="/admin" passHref legacyBehavior>
             <Button variant="outline" size="sm">
@@ -169,7 +151,7 @@ export default function Home() {
 
        {isLoading ? (
          <div className="space-y-6">
-            <Skeleton className="h-10 w-full md:w-1/3 mb-6" /> {/* Adjusted width */}
+            <Skeleton className="h-10 w-full md:w-1/2 mb-6" /> {/* Adjusted width for 2 tabs */}
             <Card>
                 <CardHeader>
                   <Skeleton className="h-6 w-3/4 md:w-1/4 mb-2" /> {/* Adjusted width */}
@@ -180,15 +162,6 @@ export default function Home() {
                 </CardContent>
             </Card>
              {/* Add skeleton for other tabs as well */}
-             <Card>
-                <CardHeader>
-                     <Skeleton className="h-6 w-3/4 md:w-1/4 mb-2" />
-                     <Skeleton className="h-4 w-full md:w-1/2" />
-                 </CardHeader>
-                 <CardContent>
-                     <Skeleton className="h-64 w-full" /> {/* Taller skeleton for teacher details */}
-                </CardContent>
-            </Card>
              <Card>
                  <CardHeader>
                      <Skeleton className="h-6 w-3/4 md:w-1/4 mb-2" />
@@ -201,9 +174,9 @@ export default function Home() {
          </div>
       ) : (
         <Tabs defaultValue="leaderboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-1 md:grid-cols-2 mb-6"> {/* Updated grid columns */}
             <TabsTrigger value="leaderboard">🏆 Öğretmen Yarışı</TabsTrigger>
-            <TabsTrigger value="teacher-view">👤 Öğretmen Detayları</TabsTrigger>
+            {/* <TabsTrigger value="teacher-view">👤 Öğretmen Detayları</TabsTrigger> REMOVED */}
             <TabsTrigger value="school-progress">📊 Okul Geneli</TabsTrigger>
           </TabsList>
 
@@ -211,7 +184,7 @@ export default function Home() {
             <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
               <CardHeader>
                 <CardTitle>Öğretmen Kayıt Yenileme Yarışı</CardTitle>
-                <CardDescription>Öğretmenlerin sorumlu oldukları öğrencilerin kayıt yenileme yüzdelerine göre sıralaması.</CardDescription>
+                <CardDescription>Öğretmenlerin sorumlu oldukları öğrencilerin kayıt yenileme yüzdelerine göre sıralaması. Detayları görmek için öğretmen adına tıklayın.</CardDescription>
               </CardHeader>
               <CardContent>
                 {teachersWithPercentage.length > 0 ? (
@@ -223,26 +196,8 @@ export default function Home() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="teacher-view">
-            <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-              <CardHeader>
-                <CardTitle>Öğretmen Özel Görünümü</CardTitle>
-                <CardDescription>Bir öğretmen seçerek sorumlu olduğu öğrencilerin kayıt yenileme durumlarını görüntüleyin.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {teachers.length > 0 && students.length > 0 ? (
-                  <TeacherDetails
-                    teachers={teachers}
-                    students={students}
-                    onRenewalToggle={handleRenewalToggle} // Pass the function, but it will be disabled internally
-                    isAdminView={false} // Explicitly set to false for this view
-                  />
-                 ) : (
-                   <p className="text-muted-foreground text-center py-4">Öğretmen detaylarını görmek için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {/* REMOVED Teacher Details Tab Content */}
+          {/* <TabsContent value="teacher-view"> ... </TabsContent> */}
 
           <TabsContent value="school-progress">
             <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">

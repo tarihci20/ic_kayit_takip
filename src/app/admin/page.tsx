@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -9,15 +8,28 @@ import { TeacherDetails } from '@/components/teacher-details';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, LogOut } from 'lucide-react';
+import { LoginForm } from '@/components/login-form'; // Import the login form
 
 export default function AdminPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Load data from localStorage on component mount (client-side)
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = () => {
+      if (typeof window !== 'undefined') {
+        const loggedIn = sessionStorage.getItem('isAdminAuthenticated');
+        setIsAuthenticated(loggedIn === 'true');
+      }
+    };
+    checkAuth();
+  }, []);
+
+  // Load data from localStorage on component mount (client-side) only if authenticated
   useEffect(() => {
     const loadData = () => {
       setIsLoading(true);
@@ -54,18 +66,20 @@ export default function AdminPage() {
       }
     };
 
-    if (typeof window !== 'undefined') {
+    // Load data only if authenticated and on the client-side
+    if (isAuthenticated && typeof window !== 'undefined') {
       loadData();
-    } else {
-      setIsLoading(false);
+    } else if (!isAuthenticated) {
+      // If not authenticated, clear data and stop loading
       setTeachers([]);
       setStudents([]);
+      setIsLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]); // Reload data when authentication status changes
 
-  // Save data to localStorage whenever it changes (client-side only)
+  // Save data to localStorage whenever it changes (client-side only and authenticated)
   useEffect(() => {
-    if (typeof window !== 'undefined' && !isLoading) {
+    if (isAuthenticated && typeof window !== 'undefined' && !isLoading) {
       try {
         localStorage.setItem('teachers', JSON.stringify(teachers));
         localStorage.setItem('students', JSON.stringify(students));
@@ -74,7 +88,7 @@ export default function AdminPage() {
         setError("Veriler yerel depoya kaydedilemedi.");
       }
     }
-  }, [teachers, students, isLoading]);
+  }, [teachers, students, isLoading, isAuthenticated]);
 
   const handleDataUpload = (uploadedTeachers: Teacher[], uploadedStudents: Student[]) => {
     setIsLoading(true);
@@ -93,9 +107,37 @@ export default function AdminPage() {
     // Data will be saved by the useEffect hook
   };
 
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('isAdminAuthenticated', 'true');
+    }
+    setError(null); // Clear login errors if any
+  };
+
+   const handleLogout = () => {
+    setIsAuthenticated(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('isAdminAuthenticated');
+    }
+    // Optionally clear data on logout
+    setTeachers([]);
+    setStudents([]);
+    setError(null);
+  };
+
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
+        <LoginForm onLoginSuccess={handleLoginSuccess} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-secondary p-4 md:p-8">
-      <header className="mb-8 flex justify-between items-center">
+      <header className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-3">
            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-vildan-burgundy">
             <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -106,12 +148,18 @@ export default function AdminPage() {
             Renewal<span className="text-vildan-burgundy">Race</span> - Admin Paneli
           </h1>
         </div>
-         <Link href="/" passHref legacyBehavior>
-            <Button variant="outline" size="sm">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Ana Sayfaya Dön
-            </Button>
-         </Link>
+         <div className="flex items-center gap-2">
+             <Link href="/" passHref legacyBehavior>
+                <Button variant="outline" size="sm">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Ana Sayfaya Dön
+                </Button>
+             </Link>
+             <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Çıkış Yap
+             </Button>
+         </div>
       </header>
 
       {error && (
