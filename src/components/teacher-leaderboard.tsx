@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -52,7 +53,9 @@ export function TeacherLeaderboard({ teachers }: TeacherLeaderboardProps) {
                     value={teacher.renewalPercentage}
                     className="h-3 flex-grow"
                     indicatorClassName={cn(
-                        teacher.renewalPercentage >= 90 ? 'bg-accent' : teacher.renewalPercentage >= 50 ? 'bg-primary' : 'bg-destructive',
+                        teacher.renewalPercentage >= 67 ? 'bg-accent' // 67-100: Green
+                       : teacher.renewalPercentage >= 34 ? 'bg-chart-3' // 34-66: Yellow
+                       : 'bg-destructive', // 0-33: Red
                          'transition-all duration-500 ease-out'
                     )} // Use color based on percentage for progress bar
                     aria-label={`${teacher.name} yenileme yüzdesi ${teacher.renewalPercentage}`}
@@ -60,10 +63,10 @@ export function TeacherLeaderboard({ teachers }: TeacherLeaderboardProps) {
                   <Badge
                     variant="outline" // Use outline as base
                     className={cn(
-                        'w-16 text-center justify-center transition-colors duration-300',
-                        teacher.renewalPercentage >= 90 ? 'bg-accent text-accent-foreground border-transparent' // High percentage
-                        : teacher.renewalPercentage >= 50 ? 'bg-primary text-primary-foreground border-transparent' // Medium percentage
-                        : 'bg-destructive text-destructive-foreground border-transparent' // Low percentage
+                        'w-16 text-center justify-center transition-colors duration-300 border-transparent', // Make border transparent
+                        teacher.renewalPercentage >= 67 ? 'bg-accent text-accent-foreground' // 67-100: Green
+                       : teacher.renewalPercentage >= 34 ? 'bg-chart-3 text-black' // 34-66: Yellow (using black text for contrast)
+                       : 'bg-destructive text-destructive-foreground' // 0-33: Red
                     )}
                   >
                      {teacher.renewalPercentage}%

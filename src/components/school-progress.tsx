@@ -4,7 +4,7 @@
 import React from 'react';
 import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label"; // Import Label
-import { School, Users, TrendingUp } from 'lucide-react';
+import { School, Users } from 'lucide-react'; // Changed TrendingUp to School
 import { cn } from "@/lib/utils"; // Import cn for conditional classes
 
 interface SchoolProgressProps {
@@ -19,15 +19,19 @@ export function SchoolProgress({ totalStudents, overallPercentage }: SchoolProgr
     ? Math.max(0, Math.min(100, overallPercentage)) // Clamp between 0 and 100
     : 0;
 
-  // Determine colors and variants based on the validated percentage
-  const percentageColor = validOverallPercentage >= 80 ? 'text-accent' : validOverallPercentage >= 50 ? 'text-primary' : 'text-destructive';
-  const progressVariant = validOverallPercentage >= 80 ? 'bg-accent' : validOverallPercentage >= 50 ? 'bg-primary' : 'bg-destructive';
+  // Determine colors and variants based on the validated percentage ranges
+  const percentageColor = validOverallPercentage >= 67 ? 'text-accent' // 67-100: Green
+                       : validOverallPercentage >= 34 ? 'text-chart-3' // 34-66: Yellow (using chart-3)
+                       : 'text-destructive'; // 0-33: Red
+  const progressVariant = validOverallPercentage >= 67 ? 'bg-accent' // 67-100: Green
+                       : validOverallPercentage >= 34 ? 'bg-chart-3' // 34-66: Yellow
+                       : 'bg-destructive'; // 0-33: Red
 
 
   return (
     <div className="flex flex-col items-center justify-center space-y-6 p-6 md:p-10 rounded-lg w-full">
         <div className="flex items-center space-x-3 text-primary">
-             <TrendingUp className="h-8 w-8" />
+             <School className="h-8 w-8" /> {/* Changed icon */}
             <h2 className="text-2xl font-semibold">Okul Geneli İlerleme</h2>
         </div>
 
@@ -66,14 +70,3 @@ export function SchoolProgress({ totalStudents, overallPercentage }: SchoolProgr
     </div>
   );
 }
-
-// Extend Progress component props if needed for indicatorClassName
-// This was likely done in a previous step, but kept here for reference.
-// Ensure `src/components/ui/progress.tsx` includes the `indicatorClassName` prop.
-/*
-declare module "@/components/ui/progress" {
-  interface ProgressProps {
-    indicatorClassName?: string;
-  }
-}
-*/

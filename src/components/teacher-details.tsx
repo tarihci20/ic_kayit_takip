@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -130,7 +131,13 @@ export function TeacherDetails({
                 </div>
                 <div className="text-left md:text-right mt-2 md:mt-0">
                      <p className="text-sm font-medium text-foreground">Yenileme Oranı</p>
-                      <Badge variant={currentTeacherPercentage >= 90 ? "default" : "secondary"} className={cn('text-lg', currentTeacherPercentage >= 90 ? 'bg-accent text-accent-foreground' : currentTeacherPercentage >= 50 ? 'bg-primary text-primary-foreground' : 'bg-destructive text-destructive-foreground' )}>
+                      <Badge variant="secondary" // Use secondary as base, override with conditional bg/text
+                          className={cn(
+                             'text-lg border-transparent', // Make border transparent
+                             currentTeacherPercentage >= 67 ? 'bg-accent text-accent-foreground' // 67-100: Green
+                            : currentTeacherPercentage >= 34 ? 'bg-chart-3 text-black' // 34-66: Yellow (using black text)
+                            : 'bg-destructive text-destructive-foreground' // 0-33: Red
+                      )}>
                         {currentTeacherPercentage}%
                     </Badge>
                 </div>
