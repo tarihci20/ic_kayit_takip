@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+   experimental: {
+    serverActions: true, // Enable server actions if needed for future features
+  },
 };
 
 export default nextConfig;
