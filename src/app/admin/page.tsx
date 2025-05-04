@@ -8,10 +8,10 @@ import { UploadForm } from '@/components/upload-form';
 import { TeacherDetails } from '@/components/teacher-details';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
-import Image from 'next/image'; // Import Next Image
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, LogOut } from 'lucide-react'; // Removed Star import
-import { LoginForm } from '@/components/login-form'; // Import the login form
+import { ArrowLeft, LogOut } from 'lucide-react';
+import { LoginForm } from '@/components/login-form';
 
 export default function AdminPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -21,12 +21,19 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthCheckComplete, setIsAuthCheckComplete] = useState(false); // Track if initial auth check is done
 
-  // Check authentication status on mount
+  // Check authentication status on mount (prioritize localStorage for "Remember Me")
   useEffect(() => {
     const checkAuth = () => {
       if (typeof window !== 'undefined') {
-        const loggedIn = sessionStorage.getItem('isAdminAuthenticated');
-        setIsAuthenticated(loggedIn === 'true');
+        // Check localStorage first for persistent login
+        const rememberedAuth = localStorage.getItem('isAdminAuthenticated');
+        if (rememberedAuth === 'true') {
+          setIsAuthenticated(true);
+        } else {
+          // If not remembered, check sessionStorage for current session login
+          const sessionAuth = sessionStorage.getItem('isAdminAuthenticated');
+          setIsAuthenticated(sessionAuth === 'true');
+        }
       }
       setIsAuthCheckComplete(true); // Mark auth check as complete
     };
@@ -86,8 +93,16 @@ export default function AdminPage() {
     // Ensure we are authenticated, on the client, and data is not currently being loaded initially
     if (isAuthenticated && typeof window !== 'undefined' && !isLoading && isAuthCheckComplete) {
       try {
-        localStorage.setItem('teachers', JSON.stringify(teachers));
-        localStorage.setItem('students', JSON.stringify(students));
+        // Only save if teachers or students data actually exists to avoid saving empty arrays on initial load
+        if (teachers.length > 0 || students.length > 0) {
+            localStorage.setItem('teachers', JSON.stringify(teachers));
+            localStorage.setItem('students', JSON.stringify(students));
+        } else {
+             // If both are empty after an operation (like a failed upload clear), remove them
+             localStorage.removeItem('teachers');
+             localStorage.removeItem('students');
+        }
+
       } catch (e) {
         console.error("Failed to save data to localStorage:", e);
         setError("Veriler yerel depoya kaydedilemedi.");
@@ -96,10 +111,10 @@ export default function AdminPage() {
   }, [teachers, students, isLoading, isAuthenticated, isAuthCheckComplete]); // Add dependencies
 
   const handleDataUpload = (uploadedTeachers: Teacher[], uploadedStudents: Student[]) => {
-    // Don't set loading here, let the useEffect handle saving
     setTeachers(uploadedTeachers);
     setStudents(uploadedStudents);
     setError(null); // Clear previous errors on new upload
+    // Data saving is handled by the useEffect hook watching teachers and students
   };
 
   const handleRenewalToggle = (studentId: number) => {
@@ -113,9 +128,7 @@ export default function AdminPage() {
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('isAdminAuthenticated', 'true');
-    }
+    // The login form now handles setting localStorage/sessionStorage
     setError(null); // Clear login errors if any
     // Data loading will be triggered by the useEffect hook watching isAuthenticated
   };
@@ -123,8 +136,10 @@ export default function AdminPage() {
    const handleLogout = () => {
     setIsAuthenticated(false);
     if (typeof window !== 'undefined') {
+      // Clear both session and local storage for authentication keys
       sessionStorage.removeItem('isAdminAuthenticated');
-      // Optionally clear localStorage on logout as well
+      localStorage.removeItem('isAdminAuthenticated');
+      // Optionally clear student/teacher data on logout if desired
       // localStorage.removeItem('teachers');
       // localStorage.removeItem('students');
     }
@@ -140,7 +155,11 @@ export default function AdminPage() {
   if (!isAuthCheckComplete) {
       return (
           <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
-              <Skeleton className="h-64 w-full max-w-sm" />
+              {/* Use a simpler skeleton or spinner for auth check */}
+              <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
           </div>
       );
   }
@@ -159,16 +178,15 @@ export default function AdminPage() {
     <div className="min-h-screen bg-secondary p-4 md:p-8">
       <header className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-3">
-            {/* Replace Star icon with placeholder Image */}
              <Image
                src="/vildan_logo.jpeg" // Use the uploaded logo
                alt="Vildan Koleji Logo"
                width={40}
                height={40}
-               className="rounded-full object-cover" // Ensure image covers the area
+               className="rounded-full object-cover"
              />
           <h1 className="text-2xl md:text-3xl font-bold text-primary">
-            Kayıt <span className="text-vildan-burgundy">Takip</span> - Admin Paneli {/* Updated text */}
+            Kayıt <span className="text-vildan-burgundy">Takip</span> - Admin Paneli
           </h1>
         </div>
          <div className="flex items-center gap-2">
@@ -192,8 +210,9 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Upload Section */}
+      {/* Changed to grid-cols-1 for stacking */}
+      <div className="grid grid-cols-1 gap-8">
+        {/* Upload Section - Order changed */}
         <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
           <CardHeader>
             <CardTitle>Veri Yükleme</CardTitle>
@@ -212,10 +231,12 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? ( // Show skeleton while loading data after authentication
-              <div className="space-y-4">
-                 <Skeleton className="h-10 w-1/3" />
-                 <Skeleton className="h-8 w-full" />
-                 <Skeleton className="h-40 w-full" />
+              <div className="space-y-4 p-4"> {/* Added padding for better spacing */}
+                 <Skeleton className="h-10 w-1/3 mb-4" /> {/* Select Skeleton */}
+                 <Skeleton className="h-8 w-full mb-2" /> {/* Table Header */}
+                 <Skeleton className="h-10 w-full mb-2" /> {/* Table Row */}
+                 <Skeleton className="h-10 w-full mb-2" /> {/* Table Row */}
+                 <Skeleton className="h-10 w-full" /> {/* Table Row */}
               </div>
             ) : (
               teachers.length > 0 || students.length > 0 ? ( // Render even if one list has data

@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, LogIn } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast'; // Import useToast
+import { useToast } from '@/hooks/use-toast';
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
@@ -19,9 +20,10 @@ const ADMIN_PASSWORD = "aci2406717";
 export function LoginForm({ onLoginSuccess }: LoginFormProps) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false); // State for remember me checkbox
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast(); // Get the toast function
+  const { toast } = useToast();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,6 +39,18 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
            variant: "default",
            action: <LogIn className="h-5 w-5 text-primary" />,
         });
+
+        // Store authentication status based on rememberMe
+        if (typeof window !== 'undefined') {
+          if (rememberMe) {
+             localStorage.setItem('isAdminAuthenticated', 'true'); // Use localStorage for persistence
+             sessionStorage.removeItem('isAdminAuthenticated'); // Clear sessionStorage if remembered
+          } else {
+             sessionStorage.setItem('isAdminAuthenticated', 'true'); // Use sessionStorage for current session only
+             localStorage.removeItem('isAdminAuthenticated'); // Clear localStorage if not remembered
+          }
+        }
+
         onLoginSuccess();
       } else {
         setError('Geçersiz kullanıcı adı veya şifre.');
@@ -83,6 +97,21 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
               required
               disabled={isLoading}
             />
+          </div>
+          {/* Remember Me Checkbox */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+                id="remember-me"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                disabled={isLoading}
+             />
+            <Label
+              htmlFor="remember-me"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Beni Hatırla
+            </Label>
           </div>
           {error && (
             <p className="text-sm text-destructive flex items-center">
