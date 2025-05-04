@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr"> {/* Set language to Turkish */}
+    <html lang="tr" suppressHydrationWarning> {/* Add suppressHydrationWarning to handle potential minor hydration mismatches */}
       <body className={`${inter.variable} font-sans antialiased`}> {/* Use Inter font */}
         {children}
         <Toaster /> {/* Add Toaster component here */}
