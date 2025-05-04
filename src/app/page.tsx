@@ -113,13 +113,17 @@ export default function Home() {
       }).sort((a, b) => b.renewalPercentage - a.renewalPercentage); // Sort by percentage descending
    }, [teachers, students]);
 
-  const overallPercentage = React.useMemo(() => {
-      if (students.length === 0) return 0;
-      const renewedCount = students.filter(student => student.renewed).length;
-      return Math.round((renewedCount / students.length) * 100);
+  const overallStats = React.useMemo(() => {
+      const totalStudentCount = students.length;
+      if (totalStudentCount === 0) return { totalStudentCount: 0, renewedStudentCount: 0, notRenewedStudentCount: 0, overallPercentage: 0 };
+
+      const renewedStudentCount = students.filter(student => student.renewed).length;
+      const notRenewedStudentCount = totalStudentCount - renewedStudentCount;
+      const overallPercentage = Math.round((renewedStudentCount / totalStudentCount) * 100);
+
+      return { totalStudentCount, renewedStudentCount, notRenewedStudentCount, overallPercentage };
   }, [students]);
 
-  const totalStudentCount = students.length;
 
   return (
     <div className="min-h-screen bg-secondary p-4 md:p-8">
@@ -127,12 +131,11 @@ export default function Home() {
         <div className="flex items-center space-x-3 flex-shrink-0">
              {/* Replace Star icon with placeholder Image */}
              <Image
-               src="https://picsum.photos/40/40" // Placeholder, replace with actual logo path
+               src="/vildan_logo.jpeg" // Use the uploaded logo
                alt="Vildan Koleji Logo"
                width={40}
                height={40}
-               className="rounded-full" // Optional styling
-               data-ai-hint="logo vildan koleji" // Hint for AI to find the user's logo
+               className="rounded-full object-cover"
              />
           <h1 className="text-2xl md:text-3xl font-bold text-primary">
             Kayıt <span className="text-vildan-burgundy">Takip</span> {/* Updated text */}
@@ -214,10 +217,11 @@ export default function Home() {
               <CardContent>
                  {/* Wrap SchoolProgress in a div for potential centering/styling */}
                  <div className="flex justify-center">
-                     {totalStudentCount > 0 ? (
+                     {overallStats.totalStudentCount > 0 ? (
                        <SchoolProgress
-                         totalStudents={totalStudentCount}
-                         overallPercentage={overallPercentage}
+                         totalStudents={overallStats.totalStudentCount}
+                         renewedStudents={overallStats.renewedStudentCount}
+                         // notRenewedStudents and overallPercentage are calculated inside
                        />
                      ) : (
                        <p className="text-muted-foreground text-center py-4">Okul geneli ilerlemesini görmek için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
