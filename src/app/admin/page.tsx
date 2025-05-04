@@ -16,9 +16,10 @@ import { LoginForm } from '@/components/login-form'; // Import the login form
 export default function AdminPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Start loading initially
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthCheckComplete, setIsAuthCheckComplete] = useState(false); // Track if initial auth check is done
 
   // Check authentication status on mount
   useEffect(() => {
@@ -27,14 +28,17 @@ export default function AdminPage() {
         const loggedIn = sessionStorage.getItem('isAdminAuthenticated');
         setIsAuthenticated(loggedIn === 'true');
       }
+      setIsAuthCheckComplete(true); // Mark auth check as complete
     };
     checkAuth();
   }, []);
 
   // Load data from localStorage on component mount (client-side) only if authenticated
   useEffect(() => {
-    const loadData = () => {
-      setIsLoading(true);
+    // Only run loadData if auth check is complete and user is authenticated
+    if (isAuthCheckComplete && isAuthenticated && typeof window !== 'undefined') {
+      setIsLoading(true); // Start loading when authenticated
+      setError(null); // Clear previous errors
       try {
         const storedTeachers = localStorage.getItem('teachers');
         const storedStudents = localStorage.getItem('students');
@@ -51,8 +55,10 @@ export default function AdminPage() {
             localStorage.removeItem('students');
             setTeachers([]);
             setStudents([]);
+            setError("Yerel depoda geçersiz veri bulundu, veriler sıfırlandı.");
           }
         } else {
+          // No data in localStorage, but authenticated, so initialize as empty
           setTeachers([]);
           setStudents([]);
         }
@@ -64,24 +70,21 @@ export default function AdminPage() {
         setStudents([]);
         setError("Yerel depodan veri yüklenirken bir hata oluştu.");
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Stop loading after attempt
       }
-    };
-
-    // Load data only if authenticated and on the client-side
-    if (isAuthenticated && typeof window !== 'undefined') {
-      loadData();
-    } else if (!isAuthenticated) {
-      // If not authenticated, clear data and stop loading
+    } else if (isAuthCheckComplete && !isAuthenticated) {
+      // If auth check is complete and not authenticated, clear data and stop loading
       setTeachers([]);
       setStudents([]);
-      setIsLoading(false);
+      setIsLoading(false); // Not authenticated, so not loading data
     }
-  }, [isAuthenticated]); // Reload data when authentication status changes
+    // Do nothing if auth check is not yet complete
+  }, [isAuthenticated, isAuthCheckComplete]); // Rerun when authentication status or check completion changes
 
   // Save data to localStorage whenever it changes (client-side only and authenticated)
   useEffect(() => {
-    if (isAuthenticated && typeof window !== 'undefined' && !isLoading) {
+    // Ensure we are authenticated, on the client, and data is not currently being loaded initially
+    if (isAuthenticated && typeof window !== 'undefined' && !isLoading && isAuthCheckComplete) {
       try {
         localStorage.setItem('teachers', JSON.stringify(teachers));
         localStorage.setItem('students', JSON.stringify(students));
@@ -90,14 +93,13 @@ export default function AdminPage() {
         setError("Veriler yerel depoya kaydedilemedi.");
       }
     }
-  }, [teachers, students, isLoading, isAuthenticated]);
+  }, [teachers, students, isLoading, isAuthenticated, isAuthCheckComplete]); // Add dependencies
 
   const handleDataUpload = (uploadedTeachers: Teacher[], uploadedStudents: Student[]) => {
-    setIsLoading(true);
+    // Don't set loading here, let the useEffect handle saving
     setTeachers(uploadedTeachers);
     setStudents(uploadedStudents);
-    setError(null); // Clear previous errors
-    setIsLoading(false);
+    setError(null); // Clear previous errors on new upload
   };
 
   const handleRenewalToggle = (studentId: number) => {
@@ -106,7 +108,7 @@ export default function AdminPage() {
         student.id === studentId ? { ...student, renewed: !student.renewed } : student
       )
     );
-    // Data will be saved by the useEffect hook
+    // Data will be saved by the useEffect hook that watches 'students'
   };
 
   const handleLoginSuccess = () => {
@@ -115,20 +117,35 @@ export default function AdminPage() {
       sessionStorage.setItem('isAdminAuthenticated', 'true');
     }
     setError(null); // Clear login errors if any
+    // Data loading will be triggered by the useEffect hook watching isAuthenticated
   };
 
    const handleLogout = () => {
     setIsAuthenticated(false);
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('isAdminAuthenticated');
+      // Optionally clear localStorage on logout as well
+      // localStorage.removeItem('teachers');
+      // localStorage.removeItem('students');
     }
-    // Optionally clear data on logout
+    // Clear state data on logout
     setTeachers([]);
     setStudents([]);
     setError(null);
+    setIsLoading(false); // No longer loading data after logout
   };
 
 
+  // Show a loading state while checking authentication
+  if (!isAuthCheckComplete) {
+      return (
+          <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
+              <Skeleton className="h-64 w-full max-w-sm" />
+          </div>
+      );
+  }
+
+  // If auth check is complete but not authenticated, show login form
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
@@ -137,18 +154,18 @@ export default function AdminPage() {
     );
   }
 
+  // If authenticated, show the admin panel
   return (
     <div className="min-h-screen bg-secondary p-4 md:p-8">
       <header className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-3">
             {/* Replace Star icon with placeholder Image */}
              <Image
-               src="https://picsum.photos/40/40" // Placeholder, replace with actual logo path
+               src="/vildan_logo.jpeg" // Use the uploaded logo
                alt="Vildan Koleji Logo"
                width={40}
                height={40}
-               className="rounded-full" // Optional styling
-               data-ai-hint="logo vildan koleji" // Hint for AI to find the user's logo
+               className="rounded-full object-cover" // Ensure image covers the area
              />
           <h1 className="text-2xl md:text-3xl font-bold text-primary">
             Kayıt <span className="text-vildan-burgundy">Takip</span> - Admin Paneli {/* Updated text */}
@@ -194,14 +211,14 @@ export default function AdminPage() {
             <CardDescription>Öğrencilerin kayıt yenileme durumlarını buradan güncelleyebilirsiniz.</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading ? ( // Show skeleton while loading data after authentication
               <div className="space-y-4">
                  <Skeleton className="h-10 w-1/3" />
                  <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-40 w-full" />
+                 <Skeleton className="h-40 w-full" />
               </div>
             ) : (
-              teachers.length > 0 && students.length > 0 ? (
+              teachers.length > 0 || students.length > 0 ? ( // Render even if one list has data
                 <TeacherDetails
                   teachers={teachers}
                   students={students}

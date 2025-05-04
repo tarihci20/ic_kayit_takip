@@ -40,6 +40,20 @@ export function TeacherDetails({
        }
    }, [initialTeacherName]);
 
+   // Effect to handle teacher selection updates when the teacher list changes (e.g., after upload)
+   // Only run this logic if it's not a specific teacher detail page (initialTeacherName is not set)
+   useEffect(() => {
+    if (!initialTeacherName) {
+        const teacherExists = teachers.some(teacher => teacher.name === selectedTeacherName);
+        // If the currently selected teacher doesn't exist anymore OR no teacher is selected,
+        // default to the first teacher in the new list.
+        if ((!teacherExists && selectedTeacherName) || !selectedTeacherName) {
+            setSelectedTeacherName(teachers[0]?.name);
+            setSearchTerm(''); // Reset search term as well
+        }
+    }
+   }, [teachers, initialTeacherName, selectedTeacherName]); // Add selectedTeacherName to dependencies
+
 
   const handleTeacherChange = (value: string) => {
     setSelectedTeacherName(value);
@@ -58,7 +72,9 @@ export function TeacherDetails({
       const teacherStudentsAll = students.filter(student => student.teacherName === teacherName);
       if (teacherStudentsAll.length === 0) return 0;
       const renewedCount = teacherStudentsAll.filter(student => student.renewed).length;
-      return Math.round((renewedCount / teacherStudentsAll.length) * 100);
+      // Handle potential division by zero if somehow length is zero after filtering
+      const percentage = teacherStudentsAll.length > 0 ? (renewedCount / teacherStudentsAll.length) * 100 : 0;
+      return Math.round(percentage);
   };
 
   const currentTeacherPercentage = calculateTeacherPercentage(selectedTeacherName);
@@ -72,7 +88,7 @@ export function TeacherDetails({
            <div className="flex flex-col md:flex-row md:items-end gap-4">
             <div className="flex-grow md:flex-grow-0 md:w-1/3">
               <Label htmlFor="teacher-select" className="mb-2 block text-sm font-medium text-foreground">Öğretmen Seçin</Label>
-              <Select onValueChange={handleTeacherChange} value={selectedTeacherName} disabled={teachers.length === 0}>
+              <Select onValueChange={handleTeacherChange} value={selectedTeacherName ?? ''} disabled={teachers.length === 0}>
                 <SelectTrigger id="teacher-select" className="w-full">
                   <div className="flex items-center gap-2">
                      <User className="h-4 w-4 text-muted-foreground" />
@@ -107,12 +123,12 @@ export function TeacherDetails({
 
       {selectedTeacherName && (
         <div>
-            <div className="mb-4 p-4 bg-secondary rounded-lg border flex flex-col md:flex-row justify-between items-center">
+            <div className="mb-4 p-4 bg-secondary rounded-lg border flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
                 <div>
                      <h3 className="text-lg font-semibold text-primary">{selectedTeacherName}</h3>
                      <p className="text-sm text-muted-foreground">Sorumlu Olduğu Öğrenci Sayısı: {currentTeacherStudentCount}</p>
                 </div>
-                <div className="text-right mt-2 md:mt-0">
+                <div className="text-left md:text-right mt-2 md:mt-0">
                      <p className="text-sm font-medium text-foreground">Yenileme Oranı</p>
                       <Badge variant={currentTeacherPercentage >= 90 ? "default" : "secondary"} className={cn('text-lg', currentTeacherPercentage >= 90 ? 'bg-accent text-accent-foreground' : currentTeacherPercentage >= 50 ? 'bg-primary text-primary-foreground' : 'bg-destructive text-destructive-foreground' )}>
                         {currentTeacherPercentage}%
@@ -123,7 +139,7 @@ export function TeacherDetails({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[100px]">ID</TableHead>
+                  <TableHead className="w-[100px] hidden sm:table-cell">ID</TableHead>
                   <TableHead>Öğrenci Adı</TableHead>
                   <TableHead className="w-[150px] text-center">Kayıt Yeniledi</TableHead>
                 </TableRow>
@@ -132,7 +148,7 @@ export function TeacherDetails({
                 {selectedTeacherStudents.length > 0 ? (
                   selectedTeacherStudents.map((student) => (
                     <TableRow key={student.id} className="hover:bg-secondary/50 transition-colors duration-150">
-                      <TableCell className="font-mono text-xs text-muted-foreground">{student.id}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground hidden sm:table-cell">{student.id}</TableCell>
                       <TableCell>{student.name}</TableCell>
                       <TableCell className="text-center">
                          <div className="flex items-center justify-center space-x-2">
@@ -171,7 +187,7 @@ export function TeacherDetails({
         <p className="text-center text-muted-foreground py-6">Öğrencileri görmek için lütfen bir öğretmen seçin.</p>
       )}
       {!initialTeacherName && !selectedTeacherName && teachers.length === 0 && (
-            <p className="text-center text-muted-foreground py-6">Başlamak için lütfen Excel dosyasını yükleyin.</p>
+            <p className="text-center text-muted-foreground py-6">Başlamak için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
         )}
     </div>
   );
