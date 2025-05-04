@@ -1,0 +1,27 @@
+/*
+This is a placeholder for the binary Excel file `public/renewal_template.xlsx`.
+
+To create the actual file:
+1. Open a new Excel workbook.
+2. Create a sheet named "Öğretmenler".
+   - In cell A1, write "Öğretmen ID".
+   - In cell B1, write "Öğretmen Adı".
+   - Add some example data (optional):
+     - A2: 101, B2: Ayşe Yılmaz
+     - A3: 102, B3: Mehmet Öztürk
+3. Create a sheet named "Öğrenciler".
+   - In cell A1, write "Öğrenci ID".
+   - In cell B1, write "Öğrenci Adı".
+   - In cell C1, write "Öğretmen ID".
+   - In cell D1, write "Kayıt Yeniledi".
+   - Add some example data (optional):
+     - A2: 1001, B2: Ali Veli, C2: 101, D2: Evet
+     - A3: 1002, B3: Zeynep Kaya, C2: 101, D3: Hayır
+     - A4: 1003, B4: Can Demir, C2: 102, D4: 1
+     - A5: 1004, B5: Elif Su, C2: 102, D5: (empty or 0)
+4. Save the file as "renewal_template.xlsx" in the `public` directory of your project.
+*/
+
+// This file content is just a text representation for the build process.
+// The actual downloadable file needs to be created manually as described above.
+Placeholder for public/renewal_template.xlsx

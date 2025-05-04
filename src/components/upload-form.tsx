@@ -53,7 +53,12 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
               console.warn(`Öğretmenler ${index + 2}. satırda eksik ID veya Ad:`, row);
               throw new Error(`Öğretmenler sayfasının ${index + 2}. satırında 'Öğretmen ID' veya 'Öğretmen Adı' sütunları eksik veya boş.`);
           }
-          return { id: Number(teacherId), name: String(teacherName) };
+          // Ensure teacherId is a number
+          const parsedTeacherId = Number(teacherId);
+          if (isNaN(parsedTeacherId)) {
+             throw new Error(`Öğretmenler sayfasının ${index + 2}. satırındaki 'Öğretmen ID' (${teacherId}) geçerli bir sayı değil.`);
+          }
+          return { id: parsedTeacherId, name: String(teacherName) };
         });
 
         // Process Students sheet
@@ -65,17 +70,28 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
         const students: Student[] = studentJson.map((row: any, index: number) => {
           const studentId = row['Öğrenci ID'] ?? row['Ogrenci ID'] ?? row['Student ID'] ?? row['ID'] ?? row['id'];
           const studentName = row['Öğrenci Adı'] ?? row['Ogrenci Adi'] ?? row['Student Name'] ?? row['Ad Soyad'] ?? row['Name'];
-          const teacherId = row['Öğretmen ID'] ?? row['Ogretmen ID'] ?? row['Teacher ID'];
+          const teacherIdRaw = row['Öğretmen ID'] ?? row['Ogretmen ID'] ?? row['Teacher ID'];
           const renewedStatus = row['Kayıt Yeniledi'] ?? row['Kayit Yeniledi'] ?? row['Renewed'] ?? row['Yeniledi']; // Check common renewal headers
 
-           if (studentId === undefined || studentId === null || studentName === undefined || studentName === null || teacherId === undefined || teacherId === null) {
+           if (studentId === undefined || studentId === null || studentName === undefined || studentName === null || teacherIdRaw === undefined || teacherIdRaw === null) {
               console.warn(`Öğrenciler ${index + 2}. satırda eksik ID, Ad veya Öğretmen ID:`, row);
               throw new Error(`Öğrenciler sayfasının ${index + 2}. satırında 'Öğrenci ID', 'Öğrenci Adı' veya 'Öğretmen ID' sütunları eksik veya boş.`);
           }
 
+          // Ensure IDs are numbers
+           const parsedStudentId = Number(studentId);
+           const parsedTeacherId = Number(teacherIdRaw);
+           if (isNaN(parsedStudentId)) {
+              throw new Error(`Öğrenciler sayfasının ${index + 2}. satırındaki 'Öğrenci ID' (${studentId}) geçerli bir sayı değil.`);
+           }
+            if (isNaN(parsedTeacherId)) {
+              throw new Error(`Öğrenciler sayfasının ${index + 2}. satırındaki 'Öğretmen ID' (${teacherIdRaw}) geçerli bir sayı değil.`);
+           }
+
+
           // Ensure teacher exists
-           if (!teachers.some(t => t.id === Number(teacherId))) {
-             throw new Error(`Öğrenciler sayfasının ${index + 2}. satırındaki Öğretmen ID (${teacherId}) Öğretmenler listesinde bulunamadı.`);
+           if (!teachers.some(t => t.id === parsedTeacherId)) {
+             throw new Error(`Öğrenciler sayfasının ${index + 2}. satırındaki Öğretmen ID (${parsedTeacherId}) Öğretmenler listesinde bulunamadı.`);
            }
 
            // Interpret renewal status (handle various truthy/falsy inputs)
@@ -83,17 +99,36 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
            if (renewedStatus !== undefined && renewedStatus !== null) {
                 const lowerStatus = String(renewedStatus).toLowerCase().trim();
                 // Define truthy values explicitly
-                renewed = ['true', 'evet', 'yeniledi', '1', 'yes', 'x', '✓', 'yapıldı', 'tamamlandı'].includes(lowerStatus);
+                renewed = ['true', 'evet', 'yeniledi', '1', 'yes', 'x', '✓', 'yapıldı', 'tamamlandı', '✓'].includes(lowerStatus);
            }
 
 
           return {
-            id: Number(studentId),
+            id: parsedStudentId,
             name: String(studentName),
-            teacherId: Number(teacherId),
+            teacherId: parsedTeacherId,
             renewed: renewed,
           };
         });
+
+        // Additional validation: Check for duplicate student IDs
+        const studentIds = new Set<number>();
+        for (const student of students) {
+            if (studentIds.has(student.id)) {
+                throw new Error(`Öğrenciler sayfasında mükerrer Öğrenci ID bulundu: ${student.id}`);
+            }
+            studentIds.add(student.id);
+        }
+
+        // Additional validation: Check for duplicate teacher IDs
+        const teacherIds = new Set<number>();
+        for (const teacher of teachers) {
+             if (teacherIds.has(teacher.id)) {
+                 throw new Error(`Öğretmenler sayfasında mükerrer Öğretmen ID bulundu: ${teacher.id}`);
+             }
+             teacherIds.add(teacher.id);
+        }
+
 
         onDataUpload(teachers, students);
         toast({
@@ -146,7 +181,7 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
    };
 
   return (
-    <div className="flex flex-col items-start space-y-2">
+    <div className="flex flex-col items-start space-y-2 w-full md:w-auto">
        <Label htmlFor="excel-upload" className="sr-only">Excel Dosyası Yükle</Label>
        <Input
         id="excel-upload"
@@ -157,7 +192,7 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
         ref={fileInputRef}
         disabled={isUploading}
       />
-      <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+      <div className="flex flex-col sm:flex-row gap-2 w-full ">
         <Button onClick={triggerFileInput} disabled={isUploading} variant="outline" className="flex-grow sm:flex-grow-0">
           {isUploading ? (
               <>
@@ -174,7 +209,7 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
               </>
           )}
         </Button>
-         {/* Download Template Link/Button */}
+         {/* Download Template Link/Button - points to the file in the /public folder */}
          <Button variant="secondary" asChild>
            <Link href="/renewal_template.xlsx" download="VildanKoleji_KayitYenileme_Sablon.xlsx">
              <Download className="mr-2 h-4 w-4" />
@@ -185,9 +220,10 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
 
        {error && <p className="text-sm text-destructive mt-1">{error}</p>}
         <p className="text-xs text-muted-foreground mt-1 max-w-md">
-          Gerekli sütunlar: Öğretmenler(<b>Öğretmen ID, Öğretmen Adı</b>), Öğrenciler(<b>Öğrenci ID, Öğrenci Adı, Öğretmen ID, Kayıt Yeniledi</b>). Yenileme durumu için 'Evet', '1', 'X' vb. kullanabilirsiniz.
+          Gerekli sütunlar: Öğretmenler(<b>Öğretmen ID, Öğretmen Adı</b>), Öğrenciler(<b>Öğrenci ID, Öğrenci Adı, Öğretmen ID, Kayıt Yeniledi</b>). Yenileme durumu için 'Evet', '1', 'X', '✓' vb. kullanabilirsiniz. Boş veya 'Hayır', '0' vb. yenilenmemiş sayılır.
        </p>
 
     </div>
   );
 }
+
