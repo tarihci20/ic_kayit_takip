@@ -222,7 +222,7 @@ export default function AdminPage() {
       <header className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-3">
              <Image
-               src="/vildan_logo.jpeg"
+               src="/vildan_star_logo.png"
                alt="Vildan Koleji Logo"
                width={40}
                height={40}

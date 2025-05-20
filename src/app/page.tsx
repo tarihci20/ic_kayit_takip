@@ -158,7 +158,7 @@ export default function Home() {
         <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="flex items-center space-x-3 flex-shrink-0">
               <Image
-                src="/vildan_logo.jpeg"
+                src="/vildan_star_logo.png"
                 alt="Vildan Koleji Logo"
                 width={40}
                 height={40}

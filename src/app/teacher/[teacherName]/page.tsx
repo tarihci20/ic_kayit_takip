@@ -7,11 +7,11 @@ import type { Student, Teacher } from '@/types';
 import { TeacherDetails } from '@/components/teacher-details';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, ArrowLeft } from 'lucide-react'; // Removed Star import
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image'; // Import Next Image
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Import Alert components
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function TeacherDetailPage() {
   const params = useParams();
@@ -48,7 +48,7 @@ export default function TeacherDetailPage() {
             setStudents(parsedStudents);
              // Check if the requested teacher exists after loading
              if (teacherName && !parsedTeachers.some(t => t.name === teacherName)) {
-                 setError(`'${teacherName}' adlı öğretmen bulunamadı.`);
+                 setError("'" + teacherName + "' adlı öğretmen bulunamadı.");
              }
 
           } else {
@@ -114,9 +114,8 @@ export default function TeacherDetailPage() {
     <div className="min-h-screen bg-secondary p-4 md:p-8">
       <header className="mb-8 flex justify-between items-center">
         <div className="flex items-center space-x-3">
-             {/* Replace Star icon with placeholder Image */}
              <Image
-               src="/vildan_logo.jpeg"
+               src="/vildan_star_logo.png"
                alt="Vildan Koleji Logo"
                width={40}
                height={40}
@@ -124,7 +123,7 @@ export default function TeacherDetailPage() {
                data-ai-hint="logo vildan koleji" 
              />
           <h1 className="text-2xl md:text-3xl font-bold text-primary">
-            Kayıt <span className="text-vildan-burgundy">Takip</span> - Öğretmen Detayları {/* Updated text */}
+            Kayıt <span className="text-vildan-burgundy">Takip</span> - Öğretmen Detayları
           </h1>
         </div>
         <Link href="/" passHref legacyBehavior>
@@ -137,7 +136,6 @@ export default function TeacherDetailPage() {
 
       <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
         <CardHeader>
-            {/* Display Teacher Name if loaded and found */}
            <CardTitle>
              {isLoading ? <Skeleton className="h-8 w-1/3" /> : (teacherName || "Öğretmen Detayları")}
            </CardTitle>
@@ -146,11 +144,11 @@ export default function TeacherDetailPage() {
         <CardContent>
           {isLoading ? (
             <div className="space-y-4 p-4">
-              <Skeleton className="h-10 w-1/2" /> {/* For search/select */}
-               <Skeleton className="h-8 w-full" /> {/* Table Header */}
-              <Skeleton className="h-10 w-full" /> {/* Table Row */}
-              <Skeleton className="h-10 w-full" /> {/* Table Row */}
-               <Skeleton className="h-10 w-full" /> {/* Table Row */}
+              <Skeleton className="h-10 w-1/2" />
+               <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+               <Skeleton className="h-10 w-full" />
             </div>
           ) : error ? (
              <Alert variant="destructive" className="mt-4">
@@ -159,25 +157,22 @@ export default function TeacherDetailPage() {
                 <AlertDescription>{error}</AlertDescription>
              </Alert>
           ) : currentTeacher && students.length > 0 ? (
-             // Render TeacherDetails only if the teacher exists and students are loaded
             <TeacherDetails
-              teachers={currentTeacher ? [currentTeacher] : []} // Pass only the current teacher, or empty array if not found
-              students={selectedTeacherStudents} // Pass students filtered for this teacher for display
-              allStudents={students} // Pass ALL students for accurate calculations by TeacherDetails
+              teachers={currentTeacher ? [currentTeacher] : []}
+              students={selectedTeacherStudents}
+              allStudents={students} 
               onRenewalToggle={handleRenewalToggle}
-              onBulkRenewalToggle={handleBulkRenewalToggleDummy} // Pass dummy handler
-              isAdminView={false} // Always false for public teacher detail view
-              initialTeacherName={teacherName ?? undefined} // Pre-select the teacher
+              onBulkRenewalToggle={handleBulkRenewalToggleDummy}
+              isAdminView={false}
+              initialTeacherName={teacherName ?? undefined}
             />
            ) : !currentTeacher && !isLoading ? (
-              // Specific message if teacher name is valid but not found in loaded data
               <Alert variant="destructive" className="mt-4">
                  <AlertCircle className="h-4 w-4" />
                  <AlertTitle>Öğretmen Bulunamadı</AlertTitle>
-                 <AlertDescription>{`'${teacherName}' adlı öğretmen yüklenen veriler arasında bulunamadı.`}</AlertDescription>
+                 <AlertDescription>{"'" + teacherName + "' adlı öğretmen yüklenen veriler arasında bulunamadı."}</AlertDescription>
               </Alert>
           ) : (
-             // General message if data is missing or teacher not selected yet
             <p className="text-muted-foreground text-center py-4">Öğretmen verileri yükleniyor veya bulunamadı.</p>
           )}
         </CardContent>
