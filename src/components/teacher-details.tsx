@@ -159,36 +159,51 @@ export function TeacherDetails({
 
       {selectedTeacherName && (
         <div className="mb-4 p-4 bg-secondary rounded-lg border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className="space-y-2"> {/* Added space-y-2 for better spacing of new items */}
-                 <h3 className="text-lg font-semibold text-primary">{selectedTeacherName}</h3>
-                 <div className="flex items-center text-sm text-muted-foreground gap-1">
-                    <Users className="h-4 w-4" />
-                    <span>Sorumlu Olduğu Öğrenci Sayısı:</span>
-                    <span className="font-medium text-foreground">{teacherStats.total}</span>
-                 </div>
-                 <div className="flex items-center text-sm text-accent gap-1">
-                    <UserCheck className="h-4 w-4" />
-                    <span>Kayıt Yenileyen:</span>
-                    <span className="font-medium">{teacherStats.renewed}</span>
-                 </div>
-                 <div className="flex items-center text-sm text-destructive gap-1">
-                    <UserX className="h-4 w-4" />
-                    <span>Kayıt Yenilemeyen:</span>
-                    <span className="font-medium">{teacherStats.notRenewed}</span>
-                 </div>
+          {/* Left side: Teacher name and stats */}
+          <div className="flex-grow">
+            <h3 className="text-lg font-semibold text-primary mb-3">{selectedTeacherName}</h3>
+            
+            {/* Stats container - stack on xs, row from sm upwards, wrap if needed */}
+            <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:gap-x-6 flex-wrap">
+              
+              {/* Stat 1: Total Students */}
+              <div className="flex items-center text-sm gap-1">
+                <Users className="h-5 w-5 text-muted-foreground" />
+                <span className="text-muted-foreground">Sorumlu Öğrenci:</span>
+                <span className="font-semibold text-primary">{teacherStats.total}</span>
+              </div>
+              
+              {/* Stat 2: Renewed Students */}
+              <div className="flex items-center text-sm gap-1">
+                <UserCheck className="h-5 w-5 text-accent" />
+                <span className="text-muted-foreground">Yenileyen:</span>
+                <span className="font-semibold text-accent">{teacherStats.renewed}</span>
+              </div>
+              
+              {/* Stat 3: Not Renewed Students */}
+              <div className="flex items-center text-sm gap-1">
+                <UserX className="h-5 w-5 text-destructive" />
+                <span className="text-muted-foreground">Yenilemeyen:</span>
+                <span className="font-semibold text-destructive">{teacherStats.notRenewed}</span>
+              </div>
+              
             </div>
-            <div className="text-left md:text-right mt-2 md:mt-0">
-                 <p className="text-sm font-medium text-foreground">Yenileme Oranı</p>
-                  <Badge variant="secondary"
-                      className={cn(
-                         'text-lg border-transparent',
-                         teacherStats.percentage >= 67 ? 'bg-accent text-accent-foreground'
-                        : teacherStats.percentage >= 34 ? 'bg-chart-3 text-black'
-                        : 'bg-destructive text-destructive-foreground'
-                  )}>
-                    {teacherStats.percentage}%
-                </Badge>
-            </div>
+          </div>
+
+          {/* Right side: Renewal Percentage Badge */}
+          <div className="text-left md:text-right mt-4 md:mt-0 self-start md:self-center">
+            <p className="text-sm font-medium text-foreground mb-1">Yenileme Oranı</p>
+            <Badge 
+              // variant={null} // Ensuring variant doesn't interfere with explicit bg/text colors
+              className={cn(
+              'text-xl font-bold px-3 py-1 border-transparent', 
+              teacherStats.percentage >= 67 ? 'bg-accent text-accent-foreground'
+              : teacherStats.percentage >= 34 ? 'bg-chart-3 text-black' 
+              : 'bg-destructive text-destructive-foreground'
+            )}>
+              {teacherStats.percentage}%
+            </Badge>
+          </div>
         </div>
       )}
 
@@ -272,3 +287,4 @@ export function TeacherDetails({
     </div>
   );
 }
+
