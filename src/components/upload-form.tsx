@@ -72,7 +72,7 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
           const studentName = row['Öğrenci Adı'] ?? row['Ogrenci Adi'] ?? row['Student Name'] ?? row['Ad Soyad'] ?? row['Name'];
           const teacherNameRaw = row['Öğretmen Adı'] ?? row['Ogretmen Adi'] ?? row['Teacher Name'] ?? row['Sorumlu Öğretmen'] ?? row['Sorumlu Ogretmen'];
           const renewedStatus = row['Kayıt Yeniledi'] ?? row['Kayit Yeniledi'] ?? row['Renewed'] ?? row['Yeniledi'];
-          const studentClassName = row['Sınıf'] ?? row['Sınıfı'] ?? row['Sinif'] ?? row['Class'];
+          const studentClassNameRaw = row['Sınıf'] ?? row['Sınıfı'] ?? row['Sinif'] ?? row['Class'];
 
 
            if (studentId === null || studentName === null || teacherNameRaw === null) {
@@ -96,12 +96,15 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
                 renewed = ['true', 'evet', 'yeniledi', '1', 'yes', 'x', '✓', 'yapıldı', 'tamamlandı', 'ok'].includes(lowerStatus);
            }
 
+           // Extract only the numeric part of the class name
+           const numericClassName = String(studentClassNameRaw ?? '').trim().match(/^\d+/)?.[0] || '';
+
           return {
             id: parsedStudentId,
             name: String(studentName),
             teacherName: teacherName,
             renewed: renewed,
-            className: String(studentClassName ?? '').trim(), // Read class name, default to empty string
+            className: numericClassName, // Store only the numeric part
           };
         });
 
@@ -185,10 +188,10 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
            {'Öğretmen ID': 102, 'Öğretmen Adı': 'Mehmet Öztürk'},
          ];
          const studentsTemplate = [
-           {'Öğrenci ID': 1, 'Öğrenci Adı': 'Ali Veli', 'Sınıf': '5-A', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'Evet'},
-           {'Öğrenci ID': 2, 'Öğrenci Adı': 'Fatma Kaya', 'Sınıf': '5-A', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'Hayır'},
-           {'Öğrenci ID': 3, 'Öğrenci Adı': 'Hasan Demir', 'Sınıf': '6-B', 'Öğretmen Adı': 'Mehmet Öztürk', 'Kayıt Yeniledi': '1'},
-           {'Öğrenci ID': 4, 'Öğrenci Adı': 'Zeynep Çelik', 'Sınıf': '6-B', 'Öğretmen Adı': 'Mehmet Öztürk', 'Kayıt Yeniledi': ''},
+           {'Öğrenci ID': 1, 'Öğrenci Adı': 'Ali Veli', 'Sınıf': '5', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'Evet'},
+           {'Öğrenci ID': 2, 'Öğrenci Adı': 'Fatma Kaya', 'Sınıf': '5', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'Hayır'},
+           {'Öğrenci ID': 3, 'Öğrenci Adı': 'Hasan Demir', 'Sınıf': '6', 'Öğretmen Adı': 'Mehmet Öztürk', 'Kayıt Yeniledi': '1'},
+           {'Öğrenci ID': 4, 'Öğrenci Adı': 'Zeynep Çelik', 'Sınıf': '6', 'Öğretmen Adı': 'Mehmet Öztürk', 'Kayıt Yeniledi': ''},
            {'Öğrenci ID': 5, 'Öğrenci Adı': 'Emre Arslan', 'Sınıf': '', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'X'},
          ];
 
@@ -256,9 +259,11 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
 
        {error && <p className="text-sm text-destructive mt-1">{error}</p>}
         <p className="text-xs text-muted-foreground mt-1 max-w-md">
-           Excel'de 'Öğretmenler' ve 'Öğrenciler' adında iki sayfa olmalıdır. Gerekli sütunlar: Öğretmenler(<b>Öğretmen ID, Öğretmen Adı</b>), Öğrenciler(<b>Öğrenci ID, Öğrenci Adı, Sınıf, Öğretmen Adı, Kayıt Yeniledi</b>). Öğrencinin öğretmenini belirtmek için 'Öğretmen Adı' sütununu kullanın. Yenileme durumu için 'Evet', '1', 'X', '✓' vb. kullanabilirsiniz. Boş veya 'Hayır', '0' vb. yenilenmemiş sayılır. Sınıf sütunu boş bırakılabilir.
+           Excel'de 'Öğretmenler' ve 'Öğrenciler' adında iki sayfa olmalıdır. Gerekli sütunlar: Öğretmenler(<b>Öğretmen ID, Öğretmen Adı</b>), Öğrenciler(<b>Öğrenci ID, Öğrenci Adı, Sınıf, Öğretmen Adı, Kayıt Yeniledi</b>). 'Sınıf' sütununa sadece sınıf seviyesini (örn: 5, 6, 7, 8) giriniz. '5-A' gibi girişler '5' olarak kabul edilecektir. Öğrencinin öğretmenini belirtmek için 'Öğretmen Adı' sütununu kullanın. Yenileme durumu için 'Evet', '1', 'X', '✓' vb. kullanabilirsiniz. Boş veya 'Hayır', '0' vb. yenilenmemiş sayılır.
        </p>
 
     </div>
   );
 }
+
+    
