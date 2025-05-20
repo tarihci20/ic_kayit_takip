@@ -12,8 +12,10 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, LogOut } from 'lucide-react';
+import { ArrowLeft, LogOut, Download } from 'lucide-react';
 import { LoginForm } from '@/components/login-form';
+import * as XLSX from 'xlsx';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -23,6 +25,7 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthCheckComplete, setIsAuthCheckComplete] = useState(false);
   const [globalSearchTerm, setGlobalSearchTerm] = useState('');
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkAuth = () => {
@@ -140,6 +143,56 @@ export default function AdminPage() {
     setIsLoading(false);
   };
 
+  const handleDownloadCurrentData = () => {
+    if (students.length === 0 && teachers.length === 0) {
+      toast({
+        title: "Veri Yok",
+        description: "İndirilecek öğrenci veya öğretmen verisi bulunmuyor.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Prepare student data
+      const studentsToExport = students.map(s => ({
+        'Öğrenci ID': s.id,
+        'Öğrenci Adı': s.name,
+        'Sınıf': s.className,
+        'Öğretmen Adı': s.teacherName,
+        'Kayıt Yeniledi': s.renewed ? 'Evet' : 'Hayır',
+      }));
+
+      // Prepare teacher data
+      const teachersToExport = teachers.map(t => ({
+        'Öğretmen ID': t.id,
+        'Öğretmen Adı': t.name,
+      }));
+
+      const studentSheet = XLSX.utils.json_to_sheet(studentsToExport);
+      const teacherSheet = XLSX.utils.json_to_sheet(teachersToExport);
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, studentSheet, 'Öğrenciler');
+      XLSX.utils.book_append_sheet(workbook, teacherSheet, 'Öğretmenler');
+
+      XLSX.writeFile(workbook, 'Guncel_Kayit_Listesi.xlsx');
+
+      toast({
+        title: "Başarılı!",
+        description: "Güncel öğrenci ve öğretmen listesi indirildi.",
+        variant: "default",
+      });
+    } catch (err) {
+      console.error("Excel oluşturma hatası:", err);
+      toast({
+        title: "Hata!",
+        description: "Excel dosyası oluşturulurken bir hata oluştu.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const displayStudentsForTeacherDetails = useMemo(() => {
     if (!globalSearchTerm) return students;
     return students.filter(s => s.name.toLowerCase().includes(globalSearchTerm.toLowerCase()));
@@ -204,7 +257,7 @@ export default function AdminPage() {
         <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
           <CardHeader>
             <CardTitle>Veri Yükleme</CardTitle>
-            <CardDescription>Öğretmen ve öğrenci listelerini içeren Excel dosyasını yükleyin.</CardDescription>
+            <CardDescription>Öğretmen ve öğrenci listelerini içeren Excel dosyasını yükleyin veya güncel verileri indirin.</CardDescription>
           </CardHeader>
           <CardContent>
             <UploadForm onDataUpload={handleDataUpload} />
@@ -212,9 +265,15 @@ export default function AdminPage() {
         </Card>
 
         <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-          <CardHeader>
-            <CardTitle>Kayıt Yenileme Yönetimi</CardTitle>
-            <CardDescription>Öğrencilerin kayıt yenileme durumlarını buradan güncelleyebilirsiniz.</CardDescription>
+          <CardHeader className="flex flex-row justify-between items-center">
+            <div>
+              <CardTitle>Kayıt Yenileme Yönetimi</CardTitle>
+              <CardDescription>Öğrencilerin kayıt yenileme durumlarını buradan güncelleyebilirsiniz.</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleDownloadCurrentData} disabled={isLoading || (students.length === 0 && teachers.length === 0)}>
+              <Download className="mr-2 h-4 w-4" />
+              Güncel Listeyi İndir
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="mb-6"> {/* Increased bottom margin for spacing */}
@@ -237,13 +296,13 @@ export default function AdminPage() {
                  <Skeleton className="h-10 w-full" />
               </div>
             ) : (
-              teachers.length > 0 || students.length > 0 ? (
+              teachers.length > 0 || students.length > 0 || globalSearchTerm ? ( // Allow rendering TeacherDetails if there's a search term even if no initial data
                 <TeacherDetails
                   teachers={teachers}
-                  students={displayStudentsForTeacherDetails} // Pass globally filtered students for display
-                  allStudents={students} // Pass original full students list for calculations
+                  students={displayStudentsForTeacherDetails} 
+                  allStudents={students} 
                   onRenewalToggle={handleRenewalToggle}
-                  onBulkRenewalToggle={handleBulkRenewalToggle} // Pass the new handler
+                  onBulkRenewalToggle={handleBulkRenewalToggle}
                   isAdminView={true}
                 />
               ) : (
