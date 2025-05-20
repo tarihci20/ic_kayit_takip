@@ -6,12 +6,12 @@ import type { Student, Teacher } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TeacherLeaderboard } from '@/components/teacher-leaderboard';
 import { SchoolProgress } from '@/components/school-progress';
-import { ClassRenewalChart, type ClassRenewalData } from '@/components/class-renewal-chart'; // Import ClassRenewalChart
+import { ClassPieChart } from '@/components/class-pie-chart'; // Updated import
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { UserCog, BarChart3 } from 'lucide-react'; // Added BarChart3 for new chart section
+import { UserCog } from 'lucide-react';
 
 export default function Home() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -22,7 +22,7 @@ export default function Home() {
   useEffect(() => {
     const loadData = () => {
       setIsLoading(true);
-      setError(null); // Reset error status at the beginning of load
+      setError(null);
       try {
         const storedTeachers = localStorage.getItem('teachers');
         const storedStudents = localStorage.getItem('students');
@@ -60,18 +60,16 @@ export default function Home() {
     if (typeof window !== 'undefined') {
         loadData();
     }
-    // isLoading is true by default, covering the pre-load server/client state.
   }, []);
 
   useEffect(() => {
       if (typeof window !== 'undefined') {
         try {
-          if (!isLoading) { // Only save if not currently loading to prevent race conditions
+          if (!isLoading) { 
               if (teachers.length > 0 || students.length > 0) {
                 localStorage.setItem('teachers', JSON.stringify(teachers));
                 localStorage.setItem('students', JSON.stringify(students));
               } else {
-                // If both are empty, check if they exist in localStorage before removing
                 const lsTeachers = localStorage.getItem('teachers');
                 const lsStudents = localStorage.getItem('students');
                 if (lsTeachers || lsStudents) { 
@@ -123,7 +121,7 @@ export default function Home() {
     const statsByClass: Record<string, { renewed: number; notRenewed: number }> = {};
 
     students.forEach(student => {
-      const className = student.className || "Belirtilmemiş"; // Handle empty class names
+      const className = student.className || "Belirtilmemiş";
       if (!statsByClass[className]) {
         statsByClass[className] = { renewed: 0, notRenewed: 0 };
       }
@@ -136,17 +134,17 @@ export default function Home() {
 
     return Object.entries(statsByClass)
       .map(([className, counts]) => ({
-        name: `${className}. Sınıflar`, // Format for display
+        name: className === "Belirtilmemiş" ? className : `${className}. Sınıflar`,
         renewed: counts.renewed,
         notRenewed: counts.notRenewed,
       }))
-      .sort((a, b) => { // Sort by class name numerically, then alphabetically for "Belirtilmemiş"
+      .sort((a, b) => {
+        if (a.name === "Belirtilmemiş") return 1; // "Belirtilmemiş" sona gelsin
+        if (b.name === "Belirtilmemiş") return -1;
         const aNum = parseInt(a.name);
         const bNum = parseInt(b.name);
         if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
-        if (!isNaN(aNum)) return -1; // Numbers first
-        if (!isNaN(bNum)) return 1;  // Numbers first
-        return a.name.localeCompare(b.name); // Then sort others alphabetically
+        return a.name.localeCompare(b.name);
       });
   }, [students]);
 
@@ -220,9 +218,9 @@ export default function Home() {
               <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
                 <CardHeader>
                   <CardTitle>Okul Geneli Kayıt Yenileme Durumu</CardTitle>
-                  <CardDescription>Tüm okula ait toplam öğrenci sayısı, kayıt yenileme yüzdesi ve sınıflara göre dağılımı.</CardDescription>
+                  <CardDescription>Tüm okula ait toplam öğrenci sayısı ve kayıt yenileme yüzdesi.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-8"> {/* Added space-y for multiple sections */}
+                <CardContent className="space-y-8">
                   <div className="flex justify-center">
                       {overallStats.totalStudentCount > 0 ? (
                         <SchoolProgress
@@ -233,21 +231,38 @@ export default function Home() {
                         <p className="text-muted-foreground text-center py-4">Okul geneli ilerlemesini görmek için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
                       )}
                   </div>
-
-                  {overallStats.totalStudentCount > 0 && classRenewalStats.length > 0 && (
-                    <div className="border-t pt-6 mt-6">
-                      <div className="flex items-center space-x-2 mb-4">
-                        <BarChart3 className="h-5 w-5 text-primary" />
-                        <h3 className="text-lg font-semibold text-primary">Sınıflara Göre Kayıt Durumu</h3>
-                      </div>
-                      <ClassRenewalChart data={classRenewalStats} />
-                    </div>
-                  )}
-                   {overallStats.totalStudentCount > 0 && classRenewalStats.length === 0 && !isLoading && (
-                     <p className="text-muted-foreground text-center py-4">Sınıf bazlı grafik için öğrenci verilerinde sınıf bilgisi bulunmalıdır.</p>
-                   )}
                 </CardContent>
               </Card>
+
+              {/* Sınıf Bazlı Pasta Grafikler Bölümü */}
+              {overallStats.totalStudentCount > 0 && classRenewalStats.length > 0 && (
+                <div className="pt-2"> {/* Removed border-t and mt-6 for closer spacing */}
+                  <div className="flex items-center space-x-2 mb-4 px-1">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M21.21 15.89A10 10 0 1 1 8.11 2.79"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                    <h3 className="text-xl font-semibold text-primary">Sınıf Bazlı Yenileme Dağılımı</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {classRenewalStats.map((classStat) => (
+                      <ClassPieChart
+                        key={classStat.name}
+                        classLevelName={classStat.name}
+                        chartData={{ renewed: classStat.renewed, notRenewed: classStat.notRenewed }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {overallStats.totalStudentCount > 0 && classRenewalStats.length === 0 && !isLoading && (
+                  <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                      <CardHeader>
+                          <CardTitle>Sınıf Bazlı Kayıt Durumu</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                          <p className="text-muted-foreground text-center py-4">Sınıf bazlı grafik için öğrenci verilerinde sınıf bilgisi bulunmalıdır.</p>
+                      </CardContent>
+                  </Card>
+              )}
+
           </div>
         )}
       </div>
