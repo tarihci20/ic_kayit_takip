@@ -19,7 +19,7 @@ export default function TeacherDetailPage() {
 
   const [teacherName, setTeacherName] = useState<string | null>(null);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<Student[]>([]); // This will hold ALL students from localStorage
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,18 +104,24 @@ export default function TeacherDetailPage() {
     console.warn("Renewal toggle attempt from non-admin view for student ID:", studentId);
   };
 
+  // Dummy function for onBulkRenewalToggle as it's not used in non-admin view
+  const handleBulkRenewalToggleDummy = (studentIds: number[], newRenewedState: boolean) => {
+    console.warn("Bulk renewal toggle attempt from non-admin view for student IDs:", studentIds, "to state:", newRenewedState);
+  };
+
+
   return (
     <div className="min-h-screen bg-secondary p-4 md:p-8">
       <header className="mb-8 flex justify-between items-center">
         <div className="flex items-center space-x-3">
              {/* Replace Star icon with placeholder Image */}
              <Image
-               src="https://picsum.photos/40/40" // Placeholder, replace with actual logo path
+               src="/vildan_logo.jpeg"
                alt="Vildan Koleji Logo"
                width={40}
                height={40}
-               className="rounded-full" // Optional styling
-               data-ai-hint="logo vildan koleji" // Hint for AI to find the user's logo
+               className="rounded-full object-cover"
+               data-ai-hint="logo vildan koleji" 
              />
           <h1 className="text-2xl md:text-3xl font-bold text-primary">
             Kayıt <span className="text-vildan-burgundy">Takip</span> - Öğretmen Detayları {/* Updated text */}
@@ -154,11 +160,12 @@ export default function TeacherDetailPage() {
              </Alert>
           ) : currentTeacher && students.length > 0 ? (
              // Render TeacherDetails only if the teacher exists and students are loaded
-             // Pass only the relevant teacher and students
             <TeacherDetails
-              teachers={[currentTeacher]} // Pass only the current teacher
-              students={students} // Pass all students, filtering happens inside
+              teachers={currentTeacher ? [currentTeacher] : []} // Pass only the current teacher, or empty array if not found
+              students={selectedTeacherStudents} // Pass students filtered for this teacher for display
+              allStudents={students} // Pass ALL students for accurate calculations by TeacherDetails
               onRenewalToggle={handleRenewalToggle}
+              onBulkRenewalToggle={handleBulkRenewalToggleDummy} // Pass dummy handler
               isAdminView={false} // Always false for public teacher detail view
               initialTeacherName={teacherName ?? undefined} // Pre-select the teacher
             />

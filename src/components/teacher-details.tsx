@@ -75,7 +75,10 @@ export function TeacherDetails({
   }, [selectedTeacherName, studentsForDisplay, searchTerm]);
 
   const teacherStats = useMemo(() => {
-    if (!selectedTeacherName) return { percentage: 0, total: 0, renewed: 0, notRenewed: 0 };
+    // Add a defensive check for allStudents
+    if (!selectedTeacherName || !allStudents) {
+        return { percentage: 0, total: 0, renewed: 0, notRenewed: 0 };
+    }
     
     const teacherStudentsAll = allStudents.filter(student => student.teacherName === selectedTeacherName);
     const total = teacherStudentsAll.length;
