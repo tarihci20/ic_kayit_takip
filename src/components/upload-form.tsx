@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useRef, type ChangeEvent } from 'react';
@@ -44,7 +45,6 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
         const teacherJson = XLSX.utils.sheet_to_json<any>(teacherSheet, { defval: null });
 
         const teachers: Teacher[] = teacherJson.map((row: any, index: number) => {
-          // Teacher ID is still useful internally, but not for linking in students sheet
           const teacherId = row['Öğretmen ID'] ?? row['Ogretmen ID'] ?? row['Teacher ID'] ?? row['ID'] ?? row['id'];
           const teacherName = row['Öğretmen Adı'] ?? row['Ogretmen Adi'] ?? row['Teacher Name'] ?? row['Ad Soyad'] ?? row['Name'];
 
@@ -56,7 +56,7 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
           if (isNaN(parsedTeacherId)) {
              throw new Error(`Öğretmenler sayfasının ${index + 2}. satırındaki 'Öğretmen ID' (${teacherId}) geçerli bir sayı değil.`);
           }
-          return { id: parsedTeacherId, name: String(teacherName).trim() }; // Trim teacher name
+          return { id: parsedTeacherId, name: String(teacherName).trim() };
         });
 
         const teacherNamesSet = new Set(teachers.map(t => t.name));
@@ -70,8 +70,10 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
         const students: Student[] = studentJson.map((row: any, index: number) => {
           const studentId = row['Öğrenci ID'] ?? row['Ogrenci ID'] ?? row['Student ID'] ?? row['ID'] ?? row['id'];
           const studentName = row['Öğrenci Adı'] ?? row['Ogrenci Adi'] ?? row['Student Name'] ?? row['Ad Soyad'] ?? row['Name'];
-          const teacherNameRaw = row['Öğretmen Adı'] ?? row['Ogretmen Adi'] ?? row['Teacher Name'] ?? row['Sorumlu Öğretmen'] ?? row['Sorumlu Ogretmen']; // Look for teacher name column
+          const teacherNameRaw = row['Öğretmen Adı'] ?? row['Ogretmen Adi'] ?? row['Teacher Name'] ?? row['Sorumlu Öğretmen'] ?? row['Sorumlu Ogretmen'];
           const renewedStatus = row['Kayıt Yeniledi'] ?? row['Kayit Yeniledi'] ?? row['Renewed'] ?? row['Yeniledi'];
+          const studentClassName = row['Sınıf'] ?? row['Sınıfı'] ?? row['Sinif'] ?? row['Class'];
+
 
            if (studentId === null || studentName === null || teacherNameRaw === null) {
               console.warn(`Öğrenciler ${index + 2}. satırda eksik ID, Ad veya Öğretmen Adı:`, row);
@@ -83,7 +85,7 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
               throw new Error(`Öğrenciler sayfasının ${index + 2}. satırındaki 'Öğrenci ID' (${studentId}) geçerli bir sayı değil.`);
            }
 
-           const teacherName = String(teacherNameRaw).trim(); // Trim teacher name
+           const teacherName = String(teacherNameRaw).trim();
            if (!teacherNamesSet.has(teacherName)) {
              throw new Error(`Öğrenciler sayfasının ${index + 2}. satırındaki Öğretmen Adı ('${teacherName}') Öğretmenler listesinde bulunamadı. İsimlerin tam olarak eşleştiğinden emin olun.`);
            }
@@ -97,8 +99,9 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
           return {
             id: parsedStudentId,
             name: String(studentName),
-            teacherName: teacherName, // Store teacher name
+            teacherName: teacherName,
             renewed: renewed,
+            className: String(studentClassName ?? '').trim(), // Read class name, default to empty string
           };
         });
 
@@ -182,11 +185,11 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
            {'Öğretmen ID': 102, 'Öğretmen Adı': 'Mehmet Öztürk'},
          ];
          const studentsTemplate = [
-           {'Öğrenci ID': 1, 'Öğrenci Adı': 'Ali Veli', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'Evet'},
-           {'Öğrenci ID': 2, 'Öğrenci Adı': 'Fatma Kaya', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'Hayır'},
-           {'Öğrenci ID': 3, 'Öğrenci Adı': 'Hasan Demir', 'Öğretmen Adı': 'Mehmet Öztürk', 'Kayıt Yeniledi': '1'},
-           {'Öğrenci ID': 4, 'Öğrenci Adı': 'Zeynep Çelik', 'Öğretmen Adı': 'Mehmet Öztürk', 'Kayıt Yeniledi': ''}, // Example for not renewed
-           {'Öğrenci ID': 5, 'Öğrenci Adı': 'Emre Arslan', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'X'}, // Example for renewed
+           {'Öğrenci ID': 1, 'Öğrenci Adı': 'Ali Veli', 'Sınıf': '5-A', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'Evet'},
+           {'Öğrenci ID': 2, 'Öğrenci Adı': 'Fatma Kaya', 'Sınıf': '5-A', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'Hayır'},
+           {'Öğrenci ID': 3, 'Öğrenci Adı': 'Hasan Demir', 'Sınıf': '6-B', 'Öğretmen Adı': 'Mehmet Öztürk', 'Kayıt Yeniledi': '1'},
+           {'Öğrenci ID': 4, 'Öğrenci Adı': 'Zeynep Çelik', 'Sınıf': '6-B', 'Öğretmen Adı': 'Mehmet Öztürk', 'Kayıt Yeniledi': ''},
+           {'Öğrenci ID': 5, 'Öğrenci Adı': 'Emre Arslan', 'Sınıf': '', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'X'},
          ];
 
          // Create worksheets
@@ -198,7 +201,6 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
          XLSX.utils.book_append_sheet(wb, teacherWs, 'Öğretmenler');
          XLSX.utils.book_append_sheet(wb, studentWs, 'Öğrenciler');
 
-         // Download the file using SheetJS's writeFile for better compatibility
          XLSX.writeFile(wb, 'VildanKoleji_KayitYenileme_Sablon.xlsx');
 
          toast({
@@ -246,7 +248,6 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
               </>
           )}
         </Button>
-         {/* Use a Button to trigger the dynamic download */}
          <Button onClick={handleDownloadTemplate} variant="secondary">
            <Download className="mr-2 h-4 w-4" />
            Şablonu İndir
@@ -255,7 +256,7 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
 
        {error && <p className="text-sm text-destructive mt-1">{error}</p>}
         <p className="text-xs text-muted-foreground mt-1 max-w-md">
-           Excel'de 'Öğretmenler' ve 'Öğrenciler' adında iki sayfa olmalıdır. Gerekli sütunlar: Öğretmenler(<b>Öğretmen ID, Öğretmen Adı</b>), Öğrenciler(<b>Öğrenci ID, Öğrenci Adı, Öğretmen Adı, Kayıt Yeniledi</b>). Öğrencinin öğretmenini belirtmek için 'Öğretmen Adı' sütununu kullanın. Yenileme durumu için 'Evet', '1', 'X', '✓' vb. kullanabilirsiniz. Boş veya 'Hayır', '0' vb. yenilenmemiş sayılır.
+           Excel'de 'Öğretmenler' ve 'Öğrenciler' adında iki sayfa olmalıdır. Gerekli sütunlar: Öğretmenler(<b>Öğretmen ID, Öğretmen Adı</b>), Öğrenciler(<b>Öğrenci ID, Öğrenci Adı, Sınıf, Öğretmen Adı, Kayıt Yeniledi</b>). Öğrencinin öğretmenini belirtmek için 'Öğretmen Adı' sütununu kullanın. Yenileme durumu için 'Evet', '1', 'X', '✓' vb. kullanabilirsiniz. Boş veya 'Hayır', '0' vb. yenilenmemiş sayılır. Sınıf sütunu boş bırakılabilir.
        </p>
 
     </div>

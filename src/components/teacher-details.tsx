@@ -5,26 +5,26 @@ import React, { useState, useMemo, useEffect } from 'react';
 import type { Student, Teacher } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox, type CheckboxProps } from "@/components/ui/checkbox"; // Import CheckboxProps
+import { Checkbox, type CheckboxProps } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { User, Search, CheckCircle2, XCircle, Users, UserCheck, UserX } from 'lucide-react';
+import { User, Search, CheckCircle2, XCircle, Users, UserCheck, UserX, BookOpen } from 'lucide-react'; // Added BookOpen for Class
 import { cn } from "@/lib/utils";
 
 interface TeacherDetailsProps {
   teachers: Teacher[];
-  students: Student[]; // Students for display (potentially pre-filtered by global search)
-  allStudents: Student[]; // All students for accurate percentage calculations
+  students: Student[];
+  allStudents: Student[];
   onRenewalToggle: (studentId: number) => void;
-  onBulkRenewalToggle: (studentIds: number[], newRenewedState: boolean) => void; // New prop
+  onBulkRenewalToggle: (studentIds: number[], newRenewedState: boolean) => void;
   isAdminView?: boolean;
   initialTeacherName?: string;
 }
 
 export function TeacherDetails({
     teachers,
-    students: studentsForDisplay, // Renamed for clarity
+    students: studentsForDisplay,
     allStudents,
     onRenewalToggle,
     onBulkRenewalToggle,
@@ -75,8 +75,7 @@ export function TeacherDetails({
   }, [selectedTeacherName, studentsForDisplay, searchTerm]);
 
   const teacherStats = useMemo(() => {
-    // Add a defensive check for allStudents
-    if (!selectedTeacherName || !allStudents) {
+    if (!selectedTeacherName || !allStudents || allStudents.length === 0) { // Added check for allStudents.length
         return { percentage: 0, total: 0, renewed: 0, notRenewed: 0 };
     }
     
@@ -108,7 +107,6 @@ export function TeacherDetails({
         const studentIdsToToggle = studentsForTable.map(s => s.id);
         onBulkRenewalToggle(studentIdsToToggle, newCheckedStateFromCheckbox);
     } else if (newCheckedStateFromCheckbox === 'indeterminate') {
-        // Typically, clicking an indeterminate checkbox makes it checked (true)
         const studentIdsToToggle = studentsForTable.map(s => s.id);
         onBulkRenewalToggle(studentIdsToToggle, true);
     }
@@ -162,42 +160,29 @@ export function TeacherDetails({
 
       {selectedTeacherName && (
         <div className="mb-4 p-4 bg-secondary rounded-lg border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          {/* Left side: Teacher name and stats */}
           <div className="flex-grow">
             <h3 className="text-lg font-semibold text-primary mb-3">{selectedTeacherName}</h3>
-            
-            {/* Stats container - stack on xs, row from sm upwards, wrap if needed */}
             <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:gap-x-6 flex-wrap">
-              
-              {/* Stat 1: Total Students */}
               <div className="flex items-center text-sm gap-1">
                 <Users className="h-5 w-5 text-muted-foreground" />
                 <span className="text-muted-foreground">Sorumlu Öğrenci:</span>
                 <span className="font-semibold text-primary">{teacherStats.total}</span>
               </div>
-              
-              {/* Stat 2: Renewed Students */}
               <div className="flex items-center text-sm gap-1">
                 <UserCheck className="h-5 w-5 text-accent" />
                 <span className="text-muted-foreground">Yenileyen:</span>
                 <span className="font-semibold text-accent">{teacherStats.renewed}</span>
               </div>
-              
-              {/* Stat 3: Not Renewed Students */}
               <div className="flex items-center text-sm gap-1">
                 <UserX className="h-5 w-5 text-destructive" />
                 <span className="text-muted-foreground">Yenilemeyen:</span>
                 <span className="font-semibold text-destructive">{teacherStats.notRenewed}</span>
               </div>
-              
             </div>
           </div>
-
-          {/* Right side: Renewal Percentage Badge */}
           <div className="text-left md:text-right mt-4 md:mt-0 self-start md:self-center">
             <p className="text-sm font-medium text-foreground mb-1">Yenileme Oranı</p>
             <Badge 
-              // variant={null} // Ensuring variant doesn't interfere with explicit bg/text colors
               className={cn(
               'text-xl font-bold px-3 py-1 border-transparent', 
               teacherStats.percentage >= 67 ? 'bg-accent text-accent-foreground'
@@ -217,10 +202,11 @@ export function TeacherDetails({
                 <TableRow>
                   <TableHead className="w-[100px] hidden sm:table-cell">ID</TableHead>
                   <TableHead>Öğrenci Adı</TableHead>
+                  <TableHead>Sınıf</TableHead>
                   {!initialTeacherName && isAdminView && !selectedTeacherName && (
                     <TableHead>Sorumlu Öğretmen</TableHead>
                   )}
-                  <TableHead className="w-[180px] text-center"> {/* Increased width for master checkbox */}
+                  <TableHead className="w-[180px] text-center">
                     {isAdminView ? (
                         <div className="flex items-center justify-center space-x-2">
                         <Checkbox
@@ -244,6 +230,16 @@ export function TeacherDetails({
                     <TableRow key={student.id} className="hover:bg-secondary/50 transition-colors duration-150">
                       <TableCell className="font-mono text-xs text-muted-foreground hidden sm:table-cell">{student.id}</TableCell>
                       <TableCell>{student.name}</TableCell>
+                      <TableCell>
+                        {student.className ? (
+                             <Badge variant="outline" className="flex items-center gap-1">
+                                <BookOpen className="h-3 w-3" />
+                                {student.className}
+                             </Badge>
+                        ) : (
+                            '-'
+                        )}
+                      </TableCell>
                        {!initialTeacherName && isAdminView && !selectedTeacherName && (
                         <TableCell>{student.teacherName}</TableCell>
                       )}
@@ -268,7 +264,7 @@ export function TeacherDetails({
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={!initialTeacherName && isAdminView && !selectedTeacherName ? 4 : 3} className="text-center text-muted-foreground py-6">
+                    <TableCell colSpan={!initialTeacherName && isAdminView && !selectedTeacherName ? 5 : 4} className="text-center text-muted-foreground py-6">
                        {searchTerm ? 'Aramanızla eşleşen öğrenci bulunamadı.' : (selectedTeacherName ? 'Bu öğretmen için öğrenci bulunmamaktadır.' : 'Görüntülenecek öğrenci bulunmamaktadır.')}
                     </TableCell>
                   </TableRow>
@@ -290,4 +286,3 @@ export function TeacherDetails({
     </div>
   );
 }
-

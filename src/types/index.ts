@@ -3,6 +3,7 @@ export interface Student {
   name: string;
   teacherName: string; // Changed from teacherId: number
   renewed: boolean;
+  className: string; // Added field for student's class
 }
 
 export interface Teacher {
