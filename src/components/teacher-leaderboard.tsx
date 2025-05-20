@@ -23,6 +23,13 @@ export function TeacherLeaderboard({ teachers }: TeacherLeaderboardProps) {
     return <span className="w-5 text-center text-muted-foreground">{index + 1}</span>; // Rank number for others
   };
 
+  const getRowClass = (index: number): string => {
+    if (index === 0) return "bg-yellow-100/70 dark:bg-yellow-800/30"; // Gold
+    if (index === 1) return "bg-slate-200/70 dark:bg-slate-700/30"; // Silver
+    if (index === 2) return "bg-orange-200/70 dark:bg-orange-800/30"; // Bronze
+    return "";
+  };
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -36,7 +43,13 @@ export function TeacherLeaderboard({ teachers }: TeacherLeaderboardProps) {
         </TableHeader>
         <TableBody>
           {teachers.map((teacher, index) => (
-            <TableRow key={teacher.id} className="hover:bg-secondary/50 transition-colors duration-150">
+            <TableRow 
+              key={teacher.id} 
+              className={cn(
+                "hover:bg-secondary/50 transition-colors duration-150",
+                getRowClass(index)
+              )}
+            >
               <TableCell className="font-medium flex items-center justify-center h-full">{getMedal(index)}</TableCell>
               <TableCell>
                 {/* Wrap teacher name in Link */}
