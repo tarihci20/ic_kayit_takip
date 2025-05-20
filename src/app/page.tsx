@@ -6,11 +6,12 @@ import type { Student, Teacher } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TeacherLeaderboard } from '@/components/teacher-leaderboard';
 import { SchoolProgress } from '@/components/school-progress';
+import { ClassRenewalChart, type ClassRenewalData } from '@/components/class-renewal-chart'; // Import ClassRenewalChart
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { UserCog } from 'lucide-react';
+import { UserCog, BarChart3 } from 'lucide-react'; // Added BarChart3 for new chart section
 
 export default function Home() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -72,11 +73,9 @@ export default function Home() {
                 localStorage.setItem('teachers', JSON.stringify(teachers));
                 localStorage.setItem('students', JSON.stringify(students));
               } else {
-                // If both are empty after an operation (e.g. admin clears data), remove from LS
-                // This check might need refinement based on exact data flow from admin
                 const lsTeachers = localStorage.getItem('teachers');
                 const lsStudents = localStorage.getItem('students');
-                if (lsTeachers || lsStudents) { // Only remove if they existed
+                if (lsTeachers || lsStudents) { 
                     localStorage.removeItem('teachers');
                     localStorage.removeItem('students');
                 }
@@ -119,6 +118,40 @@ export default function Home() {
       return { totalStudentCount, renewedStudentCount, notRenewedStudentCount, overallPercentage };
   }, [students]);
 
+  const classRenewalStats = React.useMemo(() => {
+    if (students.length === 0) return [];
+
+    const statsByClass: Record<string, { renewed: number; notRenewed: number }> = {};
+
+    students.forEach(student => {
+      const className = student.className || "Belirtilmemiş"; // Handle empty class names
+      if (!statsByClass[className]) {
+        statsByClass[className] = { renewed: 0, notRenewed: 0 };
+      }
+      if (student.renewed) {
+        statsByClass[className].renewed++;
+      } else {
+        statsByClass[className].notRenewed++;
+      }
+    });
+
+    return Object.entries(statsByClass)
+      .map(([className, counts]) => ({
+        name: `${className}. Sınıflar`, // Format for display
+        renewed: counts.renewed,
+        notRenewed: counts.notRenewed,
+      }))
+      .sort((a, b) => { // Sort by class name numerically, then alphabetically for "Belirtilmemiş"
+        const aNum = parseInt(a.name);
+        const bNum = parseInt(b.name);
+        if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+        if (!isNaN(aNum)) return -1; // Numbers first
+        if (!isNaN(bNum)) return 1;  // Numbers first
+        return a.name.localeCompare(b.name); // Then sort others alphabetically
+      });
+  }, [students]);
+
+
   return (
     <div className="min-h-screen bg-secondary p-4 md:p-8 flex flex-col">
       <div className="flex-grow">
@@ -130,6 +163,7 @@ export default function Home() {
                 width={40}
                 height={40}
                 className="rounded-full object-cover"
+                data-ai-hint="logo school"
               />
             <h1 className="text-2xl md:text-3xl font-bold text-primary">
               Kayıt <span className="text-vildan-burgundy">Takip</span>
@@ -147,7 +181,6 @@ export default function Home() {
 
         {isLoading ? (
           <div className="space-y-6">
-              {/* Skeleton for Teacher Leaderboard Card */}
               <Card>
                   <CardHeader>
                     <Skeleton className="h-6 w-3/4 md:w-1/3 mb-2" />
@@ -157,20 +190,20 @@ export default function Home() {
                       <Skeleton className="h-40 w-full" />
                   </CardContent>
               </Card>
-              {/* Skeleton for School Progress Card */}
               <Card>
                   <CardHeader>
                       <Skeleton className="h-6 w-3/4 md:w-1/3 mb-2" />
                       <Skeleton className="h-4 w-full md:w-1/2" />
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
                       <Skeleton className="h-32 w-full" />
+                      <Skeleton className="h-6 w-1/2 mx-auto" /> 
+                      <Skeleton className="h-48 w-full" /> 
                   </CardContent>
               </Card>
           </div>
         ) : (
-          <div className="space-y-6"> {/* Wrapper for stacked cards */}
-              {/* Teacher Leaderboard Card */}
+          <div className="space-y-6"> 
               <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
                 <CardHeader>
                   <CardTitle>Öğretmenler Kayıt Takip</CardTitle>
@@ -185,13 +218,12 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              {/* School Progress Card */}
               <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
                 <CardHeader>
                   <CardTitle>Okul Geneli Kayıt Yenileme Durumu</CardTitle>
-                  <CardDescription>Tüm okula ait toplam öğrenci sayısı ve kayıt yenileme yüzdesi.</CardDescription>
+                  <CardDescription>Tüm okula ait toplam öğrenci sayısı, kayıt yenileme yüzdesi ve sınıflara göre dağılımı.</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-8"> {/* Added space-y for multiple sections */}
                   <div className="flex justify-center">
                       {overallStats.totalStudentCount > 0 ? (
                         <SchoolProgress
@@ -202,6 +234,19 @@ export default function Home() {
                         <p className="text-muted-foreground text-center py-4">Okul geneli ilerlemesini görmek için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
                       )}
                   </div>
+
+                  {overallStats.totalStudentCount > 0 && classRenewalStats.length > 0 && (
+                    <div className="border-t pt-6 mt-6">
+                      <div className="flex items-center space-x-2 mb-4">
+                        <BarChart3 className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold text-primary">Sınıflara Göre Kayıt Durumu</h3>
+                      </div>
+                      <ClassRenewalChart data={classRenewalStats} />
+                    </div>
+                  )}
+                   {overallStats.totalStudentCount > 0 && classRenewalStats.length === 0 && !isLoading && (
+                     <p className="text-muted-foreground text-center py-4">Sınıf bazlı grafik için öğrenci verilerinde sınıf bilgisi bulunmalıdır.</p>
+                   )}
                 </CardContent>
               </Card>
           </div>
