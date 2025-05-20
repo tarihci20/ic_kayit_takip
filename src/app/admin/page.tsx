@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function AdminPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // For overall data loading
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthCheckComplete, setIsAuthCheckComplete] = useState(false);
@@ -28,71 +28,86 @@ export default function AdminPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    const checkAuth = () => {
-      if (typeof window !== 'undefined') {
-        const rememberedAuth = localStorage.getItem('isAdminAuthenticated');
-        if (rememberedAuth === 'true') {
-          setIsAuthenticated(true);
+    // This effect runs only on the client side
+    if (typeof window !== 'undefined') {
+      const rememberedAuth = localStorage.getItem('isAdminAuthenticated');
+      if (rememberedAuth === 'true') {
+        setIsAuthenticated(true);
+      } else {
+        const sessionAuth = sessionStorage.getItem('isAdminAuthenticated');
+        if (sessionAuth === 'true') { // Check if sessionAuth is 'true'
+           setIsAuthenticated(true);
         } else {
-          const sessionAuth = sessionStorage.getItem('isAdminAuthenticated');
-          setIsAuthenticated(sessionAuth === 'true');
+           setIsAuthenticated(false); // Explicitly set to false if neither is true
         }
       }
       setIsAuthCheckComplete(true);
-    };
-    checkAuth();
+    } else {
+      // Fallback for non-browser environments (e.g., SSR, though useEffect is client-side)
+      // Ensure a defined state to prevent UI flicker or inconsistent states.
+      setIsAuthenticated(false);
+      setIsAuthCheckComplete(true);
+    }
   }, []);
 
   useEffect(() => {
-    if (isAuthCheckComplete && isAuthenticated && typeof window !== 'undefined') {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const storedTeachers = localStorage.getItem('teachers');
-        const storedStudents = localStorage.getItem('students');
+    // This effect handles loading data from localStorage *after* auth check is complete
+    if (isAuthCheckComplete && isAuthenticated) {
+      if (typeof window !== 'undefined') {
+        setIsLoading(true); // Set loading true when attempting to load
+        setError(null);
+        try {
+          const storedTeachers = localStorage.getItem('teachers');
+          const storedStudents = localStorage.getItem('students');
 
-        if (storedTeachers && storedStudents) {
-          const parsedTeachers: Teacher[] = JSON.parse(storedTeachers);
-          const parsedStudents: Student[] = JSON.parse(storedStudents);
-          if (Array.isArray(parsedTeachers) && Array.isArray(parsedStudents)) {
-            setTeachers(parsedTeachers);
-            setStudents(parsedStudents);
+          if (storedTeachers && storedStudents) {
+            const parsedTeachers: Teacher[] = JSON.parse(storedTeachers);
+            const parsedStudents: Student[] = JSON.parse(storedStudents);
+            if (Array.isArray(parsedTeachers) && Array.isArray(parsedStudents)) {
+              setTeachers(parsedTeachers);
+              setStudents(parsedStudents);
+            } else {
+              console.warn("Invalid data found in localStorage, resetting.");
+              localStorage.removeItem('teachers');
+              localStorage.removeItem('students');
+              setTeachers([]);
+              setStudents([]);
+              setError("Yerel depoda geçersiz veri bulundu, veriler sıfırlandı.");
+            }
           } else {
-            console.warn("Invalid data found in localStorage, resetting.");
-            localStorage.removeItem('teachers');
-            localStorage.removeItem('students');
+            // If no data in localStorage, initialize with empty arrays
             setTeachers([]);
             setStudents([]);
-            setError("Yerel depoda geçersiz veri bulundu, veriler sıfırlandı.");
           }
-        } else {
+        } catch (e) {
+          console.error("Failed to load data from localStorage:", e);
+          localStorage.removeItem('teachers');
+          localStorage.removeItem('students');
           setTeachers([]);
           setStudents([]);
+          setError("Yerel depodan veri yüklenirken bir hata oluştu.");
+        } finally {
+          setIsLoading(false); // Set loading false after attempt
         }
-      } catch (e) {
-        console.error("Failed to load data from localStorage:", e);
-        localStorage.removeItem('teachers');
-        localStorage.removeItem('students');
-        setTeachers([]);
-        setStudents([]);
-        setError("Yerel depodan veri yüklenirken bir hata oluştu.");
-      } finally {
-        setIsLoading(false);
       }
     } else if (isAuthCheckComplete && !isAuthenticated) {
+      // If not authenticated but auth check is done, clear data and stop loading
       setTeachers([]);
       setStudents([]);
       setIsLoading(false);
     }
+    // If auth check is not complete, isLoading remains true (its initial state)
   }, [isAuthenticated, isAuthCheckComplete]);
 
   useEffect(() => {
+    // This effect handles saving data to localStorage
     if (isAuthenticated && typeof window !== 'undefined' && !isLoading && isAuthCheckComplete) {
       try {
         if (teachers.length > 0 || students.length > 0) {
             localStorage.setItem('teachers', JSON.stringify(teachers));
             localStorage.setItem('students', JSON.stringify(students));
         } else {
+             // Remove from localStorage if both are empty, to keep it clean
              localStorage.removeItem('teachers');
              localStorage.removeItem('students');
         }
@@ -129,18 +144,18 @@ export default function AdminPage() {
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     setError(null);
+    // Data loading will be triggered by the useEffect watching isAuthenticated and isAuthCheckComplete
   };
 
    const handleLogout = () => {
-    setIsAuthenticated(false);
+    setIsAuthenticated(false); // This will trigger data clearing via useEffect
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('isAdminAuthenticated');
       localStorage.removeItem('isAdminAuthenticated');
     }
-    setTeachers([]);
-    setStudents([]);
+    // No need to setTeachers/Students to [] here, useEffect will handle it
     setError(null);
-    setIsLoading(false);
+    // setIsLoading(false); // Let useEffect handle loading state based on auth
   };
 
   const handleDownloadCurrentData = () => {

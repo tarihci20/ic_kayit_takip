@@ -22,6 +22,7 @@ export default function Home() {
   useEffect(() => {
     const loadData = () => {
       setIsLoading(true);
+      setError(null); // Reset error status at the beginning of load
       try {
         const storedTeachers = localStorage.getItem('teachers');
         const storedStudents = localStorage.getItem('students');
@@ -58,21 +59,21 @@ export default function Home() {
 
     if (typeof window !== 'undefined') {
         loadData();
-    } else {
-        setIsLoading(false);
-        setTeachers([]);
-        setStudents([]);
     }
+    // The 'else' block previously here was redundant as useEffect only runs client-side.
+    // isLoading is true by default, covering the pre-load server/client state.
   }, []);
 
   useEffect(() => {
       if (typeof window !== 'undefined') {
         try {
-          if (!isLoading) {
+          if (!isLoading) { // Only save if not currently loading to prevent race conditions
               if (teachers.length > 0 || students.length > 0) {
                 localStorage.setItem('teachers', JSON.stringify(teachers));
                 localStorage.setItem('students', JSON.stringify(students));
               } else {
+                // If both are empty, check if they exist in localStorage before removing
+                // This avoids unnecessary localStorage operations if they were never there or already cleared.
                 const lsTeachers = localStorage.getItem('teachers');
                 const lsStudents = localStorage.getItem('students');
                 if (lsTeachers || lsStudents) { 
