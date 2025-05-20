@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google'; // Changed font to Inter
+import { Inter } from 'next/font/google';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster"; // Import Toaster
+import { Toaster } from "@/components/ui/toaster";
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' }); // Define Inter font
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'Kayıt Takip - Vildan Koleji', // Updated title to "Kayıt Takip"
-  description: 'Öğrenci kayıt yenileme takip ve yarışma sistemi', // Updated description
+  title: 'Kayıt Takip - Vildan Koleji',
+  description: 'Öğrenci kayıt yenileme takip ve yarışma sistemi',
 };
 
 export default function RootLayout({
@@ -16,10 +16,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="tr" suppressHydrationWarning> {/* Add suppressHydrationWarning to handle potential minor hydration mismatches */}
-      <body className={`${inter.variable} font-sans antialiased`}> {/* Use Inter font */}
+    <html lang="tr" suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans antialiased`}>
         {children}
-        <Toaster /> {/* Add Toaster component here */}
+        <Toaster />
       </body>
     </html>
   );
