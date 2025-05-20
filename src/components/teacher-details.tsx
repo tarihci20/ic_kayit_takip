@@ -9,7 +9,7 @@ import { Checkbox, type CheckboxProps } from "@/components/ui/checkbox"; // Impo
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { User, Search, CheckCircle2, XCircle } from 'lucide-react';
+import { User, Search, CheckCircle2, XCircle, Users, UserCheck, UserX } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 interface TeacherDetailsProps {
@@ -74,21 +74,20 @@ export function TeacherDetails({
     return listToFilter;
   }, [selectedTeacherName, studentsForDisplay, searchTerm]);
 
-  const calculateTeacherPercentage = (teacherName: string | undefined): number => {
-      if (!teacherName) return 0;
-      const teacherStudentsAll = allStudents.filter(student => student.teacherName === teacherName);
-      if (teacherStudentsAll.length === 0) return 0;
-      const renewedCount = teacherStudentsAll.filter(student => student.renewed).length;
-      const percentage = teacherStudentsAll.length > 0 ? (renewedCount / teacherStudentsAll.length) * 100 : 0;
-      return Math.round(percentage);
-  };
+  const teacherStats = useMemo(() => {
+    if (!selectedTeacherName) return { percentage: 0, total: 0, renewed: 0, notRenewed: 0 };
+    
+    const teacherStudentsAll = allStudents.filter(student => student.teacherName === selectedTeacherName);
+    const total = teacherStudentsAll.length;
+    if (total === 0) return { percentage: 0, total: 0, renewed: 0, notRenewed: 0 };
 
-  const currentTeacherPercentage = calculateTeacherPercentage(selectedTeacherName);
-
-  const currentTeacherTotalStudents = useMemo(() => {
-    if (!selectedTeacherName) return 0;
-    return allStudents.filter(student => student.teacherName === selectedTeacherName).length;
+    const renewed = teacherStudentsAll.filter(student => student.renewed).length;
+    const notRenewed = total - renewed;
+    const percentage = Math.round((renewed / total) * 100);
+    
+    return { percentage, total, renewed, notRenewed };
   }, [selectedTeacherName, allStudents]);
+
 
   const isAnyStudentInTable = studentsForTable.length > 0;
 
@@ -159,21 +158,35 @@ export function TeacherDetails({
        )}
 
       {selectedTeacherName && (
-        <div className="mb-4 p-4 bg-secondary rounded-lg border flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
-            <div>
+        <div className="mb-4 p-4 bg-secondary rounded-lg border flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="space-y-2"> {/* Added space-y-2 for better spacing of new items */}
                  <h3 className="text-lg font-semibold text-primary">{selectedTeacherName}</h3>
-                 <p className="text-sm text-muted-foreground">Sorumlu Olduğu Öğrenci Sayısı: {currentTeacherTotalStudents}</p>
+                 <div className="flex items-center text-sm text-muted-foreground gap-1">
+                    <Users className="h-4 w-4" />
+                    <span>Sorumlu Olduğu Öğrenci Sayısı:</span>
+                    <span className="font-medium text-foreground">{teacherStats.total}</span>
+                 </div>
+                 <div className="flex items-center text-sm text-accent gap-1">
+                    <UserCheck className="h-4 w-4" />
+                    <span>Kayıt Yenileyen:</span>
+                    <span className="font-medium">{teacherStats.renewed}</span>
+                 </div>
+                 <div className="flex items-center text-sm text-destructive gap-1">
+                    <UserX className="h-4 w-4" />
+                    <span>Kayıt Yenilemeyen:</span>
+                    <span className="font-medium">{teacherStats.notRenewed}</span>
+                 </div>
             </div>
             <div className="text-left md:text-right mt-2 md:mt-0">
                  <p className="text-sm font-medium text-foreground">Yenileme Oranı</p>
                   <Badge variant="secondary"
                       className={cn(
                          'text-lg border-transparent',
-                         currentTeacherPercentage >= 67 ? 'bg-accent text-accent-foreground'
-                        : currentTeacherPercentage >= 34 ? 'bg-chart-3 text-black'
+                         teacherStats.percentage >= 67 ? 'bg-accent text-accent-foreground'
+                        : teacherStats.percentage >= 34 ? 'bg-chart-3 text-black'
                         : 'bg-destructive text-destructive-foreground'
                   )}>
-                    {currentTeacherPercentage}%
+                    {teacherStats.percentage}%
                 </Badge>
             </div>
         </div>
