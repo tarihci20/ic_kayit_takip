@@ -9,7 +9,7 @@ import { Checkbox, type CheckboxProps } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { User, Search, CheckCircle2, XCircle, Users, UserCheck, UserX, BookOpen } from 'lucide-react'; // Added BookOpen for Class
+import { User, Search, CheckCircle2, XCircle, Users, UserCheck, UserX, BookOpen } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 interface TeacherDetailsProps {
@@ -75,7 +75,7 @@ export function TeacherDetails({
   }, [selectedTeacherName, studentsForDisplay, searchTerm]);
 
   const teacherStats = useMemo(() => {
-    if (!selectedTeacherName || !allStudents || allStudents.length === 0) { // Added check for allStudents.length
+    if (!selectedTeacherName || !allStudents || allStudents.length === 0) {
         return { percentage: 0, total: 0, renewed: 0, notRenewed: 0 };
     }
     
@@ -107,6 +107,7 @@ export function TeacherDetails({
         const studentIdsToToggle = studentsForTable.map(s => s.id);
         onBulkRenewalToggle(studentIdsToToggle, newCheckedStateFromCheckbox);
     } else if (newCheckedStateFromCheckbox === 'indeterminate') {
+        // If indeterminate, clicking should mark all as true
         const studentIdsToToggle = studentsForTable.map(s => s.id);
         onBulkRenewalToggle(studentIdsToToggle, true);
     }
@@ -163,20 +164,20 @@ export function TeacherDetails({
           <div className="flex-grow">
             <h3 className="text-lg font-semibold text-primary mb-3">{selectedTeacherName}</h3>
             <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:gap-x-6 flex-wrap">
-              <div className="flex items-center text-sm gap-1">
+              <div className="flex items-center text-sm gap-1.5"> {/* Increased gap slightly */}
                 <Users className="h-5 w-5 text-muted-foreground" />
                 <span className="text-muted-foreground">Sorumlu Öğrenci:</span>
-                <span className="font-semibold text-primary">{teacherStats.total}</span>
+                <span className="font-semibold text-primary text-base">{teacherStats.total}</span> {/* Made number larger */}
               </div>
-              <div className="flex items-center text-sm gap-1">
+              <div className="flex items-center text-sm gap-1.5">
                 <UserCheck className="h-5 w-5 text-accent" />
                 <span className="text-muted-foreground">Yenileyen:</span>
-                <span className="font-semibold text-accent">{teacherStats.renewed}</span>
+                <span className="font-semibold text-accent text-base">{teacherStats.renewed}</span>
               </div>
-              <div className="flex items-center text-sm gap-1">
+              <div className="flex items-center text-sm gap-1.5">
                 <UserX className="h-5 w-5 text-destructive" />
                 <span className="text-muted-foreground">Yenilemeyen:</span>
-                <span className="font-semibold text-destructive">{teacherStats.notRenewed}</span>
+                <span className="font-semibold text-destructive text-base">{teacherStats.notRenewed}</span>
               </div>
             </div>
           </div>
@@ -227,7 +228,15 @@ export function TeacherDetails({
               <TableBody>
                 {studentsForTable.length > 0 ? (
                   studentsForTable.map((student) => (
-                    <TableRow key={student.id} className="hover:bg-secondary/50 transition-colors duration-150">
+                    <TableRow 
+                        key={student.id} 
+                        className={cn(
+                            "transition-colors duration-150",
+                            student.renewed 
+                                ? "bg-accent/10 hover:bg-accent/20" 
+                                : "bg-destructive/10 hover:bg-destructive/20"
+                        )}
+                    >
                       <TableCell className="font-mono text-xs text-muted-foreground hidden sm:table-cell">{student.id}</TableCell>
                       <TableCell>{student.name}</TableCell>
                       <TableCell>
