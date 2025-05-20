@@ -115,6 +115,14 @@ export default function AdminPage() {
     );
   };
 
+  const handleBulkRenewalToggle = (studentIdsToUpdate: number[], newRenewedState: boolean) => {
+    setStudents(prevStudents =>
+      prevStudents.map(student =>
+        studentIdsToUpdate.includes(student.id) ? { ...student, renewed: newRenewedState } : student
+      )
+    );
+  };
+
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     setError(null);
@@ -235,6 +243,7 @@ export default function AdminPage() {
                   students={displayStudentsForTeacherDetails} // Pass globally filtered students for display
                   allStudents={students} // Pass original full students list for calculations
                   onRenewalToggle={handleRenewalToggle}
+                  onBulkRenewalToggle={handleBulkRenewalToggle} // Pass the new handler
                   isAdminView={true}
                 />
               ) : (

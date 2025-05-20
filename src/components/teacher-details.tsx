@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import type { Student, Teacher } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox, type CheckboxProps } from "@/components/ui/checkbox"; // Import CheckboxProps
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -17,20 +17,22 @@ interface TeacherDetailsProps {
   students: Student[]; // Students for display (potentially pre-filtered by global search)
   allStudents: Student[]; // All students for accurate percentage calculations
   onRenewalToggle: (studentId: number) => void;
+  onBulkRenewalToggle: (studentIds: number[], newRenewedState: boolean) => void; // New prop
   isAdminView?: boolean;
   initialTeacherName?: string;
 }
 
 export function TeacherDetails({
     teachers,
-    students, // This list is for display and local filtering
-    allStudents, // This list is for accurate calculations
+    students: studentsForDisplay, // Renamed for clarity
+    allStudents,
     onRenewalToggle,
+    onBulkRenewalToggle,
     isAdminView = false,
     initialTeacherName
 }: TeacherDetailsProps) {
   const [selectedTeacherName, setSelectedTeacherName] = useState<string | undefined>(
-    initialTeacherName ?? (isAdminView ? undefined : teachers[0]?.name) // In admin, default to no teacher selected initially
+    initialTeacherName ?? (isAdminView ? undefined : teachers[0]?.name)
   );
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -42,44 +44,36 @@ export function TeacherDetails({
    }, [initialTeacherName]);
 
    useEffect(() => {
-    if (!initialTeacherName && isAdminView) { // Only apply this logic in admin view if no specific teacher page
+    if (!initialTeacherName && isAdminView) {
         const teacherExists = teachers.some(teacher => teacher.name === selectedTeacherName);
-        if ((selectedTeacherName && !teacherExists)) { // If a teacher was selected but no longer exists
-            setSelectedTeacherName(undefined); // Default to "no teacher selected"
+        if ((selectedTeacherName && !teacherExists)) {
+            setSelectedTeacherName(undefined);
             setSearchTerm('');
-        } else if (!selectedTeacherName && teachers.length > 0 && !isAdminView) {
-            // For non-admin, non-initialTeacherName context, if no teacher is selected but teachers exist, select first
-            // setSelectedTeacherName(teachers[0]?.name); // This line might be conflicting, re-evaluate if needed for non-admin
         }
     } else if (!initialTeacherName && !isAdminView && teachers.length > 0 && !selectedTeacherName){
-        // Default to first teacher if not admin, not specific page, teachers exist and none selected
         setSelectedTeacherName(teachers[0]?.name);
     }
    }, [teachers, initialTeacherName, selectedTeacherName, isAdminView]);
 
 
   const handleTeacherChange = (value: string) => {
-    setSelectedTeacherName(value === "ALL_TEACHERS_PLACEHOLDER" ? undefined : value); // Handle placeholder for "no selection"
+    setSelectedTeacherName(value === "ALL_TEACHERS_PLACEHOLDER" ? undefined : value);
     setSearchTerm('');
   };
 
-  // Students to be displayed in the table, after local teacher selection and local search
   const studentsForTable = useMemo(() => {
-    let listToFilter = students; // Start with the students prop (already globally filtered if on admin page)
+    let listToFilter = studentsForDisplay;
 
-    if (selectedTeacherName) { // If a specific teacher is selected from dropdown
+    if (selectedTeacherName) {
       listToFilter = listToFilter.filter(student => student.teacherName === selectedTeacherName);
     }
-    // If no teacher is selected (`selectedTeacherName` is undefined), `listToFilter` remains the `students` prop.
-    // This means in admin view, if no teacher is chosen, it shows all (globally searched) students.
 
     if (searchTerm) {
       return listToFilter.filter(student => student.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }
     return listToFilter;
-  }, [selectedTeacherName, students, searchTerm]);
+  }, [selectedTeacherName, studentsForDisplay, searchTerm]);
 
-  // Calculate percentage for the selected teacher using the original `allStudents` list
   const calculateTeacherPercentage = (teacherName: string | undefined): number => {
       if (!teacherName) return 0;
       const teacherStudentsAll = allStudents.filter(student => student.teacherName === teacherName);
@@ -91,25 +85,43 @@ export function TeacherDetails({
 
   const currentTeacherPercentage = calculateTeacherPercentage(selectedTeacherName);
 
-  // Calculate total students for the selected teacher using `allStudents`
   const currentTeacherTotalStudents = useMemo(() => {
-    if (!selectedTeacherName) return 0; // Or handle as "N/A" or total students if desired for "all" view
+    if (!selectedTeacherName) return 0;
     return allStudents.filter(student => student.teacherName === selectedTeacherName).length;
   }, [selectedTeacherName, allStudents]);
+
+  const isAnyStudentInTable = studentsForTable.length > 0;
+
+  const masterCheckboxCheckedState: CheckboxProps['checked'] = useMemo(() => {
+    if (!isAnyStudentInTable) return false;
+    const allRenewed = studentsForTable.every(s => s.renewed);
+    if (allRenewed) return true;
+    const someRenewed = studentsForTable.some(s => s.renewed);
+    if (someRenewed) return 'indeterminate';
+    return false;
+  }, [studentsForTable, isAnyStudentInTable]);
+
+  const handleMasterCheckboxChange = (newCheckedStateFromCheckbox: CheckboxProps['checked']) => {
+    if (typeof newCheckedStateFromCheckbox === 'boolean') {
+        const studentIdsToToggle = studentsForTable.map(s => s.id);
+        onBulkRenewalToggle(studentIdsToToggle, newCheckedStateFromCheckbox);
+    } else if (newCheckedStateFromCheckbox === 'indeterminate') {
+        // Typically, clicking an indeterminate checkbox makes it checked (true)
+        const studentIdsToToggle = studentsForTable.map(s => s.id);
+        onBulkRenewalToggle(studentIdsToToggle, true);
+    }
+  };
 
 
   return (
     <div className="space-y-6">
-       {/* Teacher select and local student search */}
-       {/* Hide teacher select if on a specific teacher's detail page (initialTeacherName is provided) */}
        {!initialTeacherName && (
            <div className="flex flex-col md:flex-row md:items-end gap-4">
             <div className="flex-grow md:flex-grow-0 md:w-1/3">
               <Label htmlFor="teacher-select" className="mb-2 block text-sm font-medium text-foreground">Öğretmen Seçin</Label>
               <Select
                 onValueChange={handleTeacherChange}
-                // value={selectedTeacherName ?? (isAdminView ? "ALL_TEACHERS_PLACEHOLDER" : '')} // Use placeholder for "no selection" in admin
-                value={selectedTeacherName ?? ''} // Keep it simple, empty string for no selection
+                value={selectedTeacherName ?? ''}
                 disabled={teachers.length === 0 && !isAdminView}
               >
                 <SelectTrigger id="teacher-select" className="w-full">
@@ -119,7 +131,6 @@ export function TeacherDetails({
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  {/* {isAdminView && <SelectItem value="ALL_TEACHERS_PLACEHOLDER">Tüm Öğretmenler / Seçim Yok</SelectItem>} */}
                   {teachers.map((teacher) => (
                     <SelectItem key={teacher.id} value={teacher.name}>
                       {teacher.name}
@@ -141,13 +152,12 @@ export function TeacherDetails({
                  value={searchTerm}
                  onChange={(e) => setSearchTerm(e.target.value)}
                  className="pl-8 w-full h-10"
-                 disabled={!isAdminView && !selectedTeacherName} // More refined disabled logic
+                 disabled={!isAdminView && !selectedTeacherName && studentsForDisplay.length === 0}
                />
              </div>
            </div>
        )}
 
-      {/* Teacher Stats Header - Only show if a teacher IS selected */}
       {selectedTeacherName && (
         <div className="mb-4 p-4 bg-secondary rounded-lg border flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
             <div>
@@ -169,18 +179,32 @@ export function TeacherDetails({
         </div>
       )}
 
-      {/* Student Table */}
-      {((isAdminView || selectedTeacherName) || initialTeacherName) && ( // Show table if admin, or a teacher is selected, or on teacher detail page
+      {((isAdminView || selectedTeacherName) || initialTeacherName) && (
         <div className="overflow-x-auto border rounded-lg">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[100px] hidden sm:table-cell">ID</TableHead>
                   <TableHead>Öğrenci Adı</TableHead>
-                  {!initialTeacherName && isAdminView && !selectedTeacherName && ( // Show Teacher Name column in admin view if no specific teacher is selected
+                  {!initialTeacherName && isAdminView && !selectedTeacherName && (
                     <TableHead>Sorumlu Öğretmen</TableHead>
                   )}
-                  <TableHead className="w-[150px] text-center">Kayıt Yeniledi</TableHead>
+                  <TableHead className="w-[180px] text-center"> {/* Increased width for master checkbox */}
+                    {isAdminView ? (
+                        <div className="flex items-center justify-center space-x-2">
+                        <Checkbox
+                            id="toggle-all-renewed"
+                            checked={masterCheckboxCheckedState}
+                            onCheckedChange={handleMasterCheckboxChange}
+                            disabled={!isAnyStudentInTable}
+                            aria-label="Tüm görünür öğrencilerin kayıt yenileme durumunu toplu değiştir"
+                        />
+                        <span>Kayıt Yeniledi</span>
+                        </div>
+                    ) : (
+                        "Kayıt Yeniledi"
+                    )}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -223,8 +247,7 @@ export function TeacherDetails({
           </div>
         )}
 
-       {/* Fallback messages for empty states */}
-       {!initialTeacherName && !selectedTeacherName && isAdminView && students.length === 0 && !searchTerm && (
+       {!initialTeacherName && !selectedTeacherName && isAdminView && studentsForDisplay.length === 0 && !searchTerm && (
             <p className="text-center text-muted-foreground py-6">Başlamak için lütfen Admin Panelinden Excel dosyasını yükleyin veya genel aramayı kullanın.</p>
        )}
        {!initialTeacherName && !selectedTeacherName && !isAdminView && teachers.length > 0 && (
