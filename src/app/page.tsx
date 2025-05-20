@@ -6,7 +6,7 @@ import type { Student, Teacher } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TeacherLeaderboard } from '@/components/teacher-leaderboard';
 import { SchoolProgress } from '@/components/school-progress';
-import { ClassPieChart } from '@/components/class-pie-chart'; // Updated import
+import { ClassPieChart } from '@/components/class-pie-chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -65,14 +65,14 @@ export default function Home() {
   useEffect(() => {
       if (typeof window !== 'undefined') {
         try {
-          if (!isLoading) { 
+          if (!isLoading) {
               if (teachers.length > 0 || students.length > 0) {
                 localStorage.setItem('teachers', JSON.stringify(teachers));
                 localStorage.setItem('students', JSON.stringify(students));
               } else {
                 const lsTeachers = localStorage.getItem('teachers');
                 const lsStudents = localStorage.getItem('students');
-                if (lsTeachers || lsStudents) { 
+                if (lsTeachers || lsStudents) {
                     localStorage.removeItem('teachers');
                     localStorage.removeItem('students');
                 }
@@ -167,6 +167,11 @@ export default function Home() {
               <span className="block text-sm md:inline md:ml-2 text-muted-foreground font-normal">Vildan Koleji Ortaokulu</span>
             </h1>
           </div>
+          <div className="w-full md:w-auto text-center md:text-right mt-2 md:mt-0">
+            <p className="text-xs sm:text-sm text-muted-foreground italic">
+              "İşini severek yapanlar çalışmak zorunda kalmazlar"
+            </p>
+          </div>
         </header>
 
         {error && (
@@ -194,13 +199,13 @@ export default function Home() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                       <Skeleton className="h-32 w-full" />
-                      <Skeleton className="h-6 w-1/2 mx-auto" /> 
-                      <Skeleton className="h-48 w-full" /> 
+                      <Skeleton className="h-6 w-1/2 mx-auto" />
+                      <Skeleton className="h-48 w-full" />
                   </CardContent>
               </Card>
           </div>
         ) : (
-          <div className="space-y-6"> 
+          <div className="space-y-6">
               <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
                 <CardHeader>
                   <CardTitle>Öğretmenler Kayıt Takip</CardTitle>
