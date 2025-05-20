@@ -68,8 +68,19 @@ export default function Home() {
       if (typeof window !== 'undefined') {
         try {
           if (!isLoading) {
-              localStorage.setItem('teachers', JSON.stringify(teachers));
-              localStorage.setItem('students', JSON.stringify(students));
+              if (teachers.length > 0 || students.length > 0) {
+                localStorage.setItem('teachers', JSON.stringify(teachers));
+                localStorage.setItem('students', JSON.stringify(students));
+              } else {
+                // If both are empty after an operation (e.g. admin clears data), remove from LS
+                // This check might need refinement based on exact data flow from admin
+                const lsTeachers = localStorage.getItem('teachers');
+                const lsStudents = localStorage.getItem('students');
+                if (lsTeachers || lsStudents) { // Only remove if they existed
+                    localStorage.removeItem('teachers');
+                    localStorage.removeItem('students');
+                }
+              }
           }
         } catch (e) {
           console.error("Failed to save data to localStorage:", e);
@@ -109,97 +120,101 @@ export default function Home() {
   }, [students]);
 
   return (
-    <div className="min-h-screen bg-secondary p-4 md:p-8">
-      <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center space-x-3 flex-shrink-0">
-             <Image
-               src="/vildan_logo.jpeg"
-               alt="Vildan Koleji Logo"
-               width={40}
-               height={40}
-               className="rounded-full object-cover"
-             />
-          <h1 className="text-2xl md:text-3xl font-bold text-primary">
-            Kayıt <span className="text-vildan-burgundy">Takip</span>
-             <span className="block text-sm md:inline md:ml-2 text-muted-foreground font-normal">Vildan Koleji Ortaokulu</span>
-          </h1>
-        </div>
-         <Link href="/admin" passHref legacyBehavior>
+    <div className="min-h-screen bg-secondary p-4 md:p-8 flex flex-col">
+      <div className="flex-grow">
+        <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center space-x-3 flex-shrink-0">
+              <Image
+                src="/vildan_logo.jpeg"
+                alt="Vildan Koleji Logo"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
+            <h1 className="text-2xl md:text-3xl font-bold text-primary">
+              Kayıt <span className="text-vildan-burgundy">Takip</span>
+              <span className="block text-sm md:inline md:ml-2 text-muted-foreground font-normal">Vildan Koleji Ortaokulu</span>
+            </h1>
+          </div>
+        </header>
+
+        {error && (
+          <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-md mb-6" role="alert">
+            <p className="font-medium">Hata!</p>
+            <p>{error}</p>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="space-y-6">
+              {/* Skeleton for Teacher Leaderboard Card */}
+              <Card>
+                  <CardHeader>
+                    <Skeleton className="h-6 w-3/4 md:w-1/3 mb-2" />
+                    <Skeleton className="h-4 w-full md:w-2/3" />
+                  </CardHeader>
+                  <CardContent>
+                      <Skeleton className="h-40 w-full" />
+                  </CardContent>
+              </Card>
+              {/* Skeleton for School Progress Card */}
+              <Card>
+                  <CardHeader>
+                      <Skeleton className="h-6 w-3/4 md:w-1/3 mb-2" />
+                      <Skeleton className="h-4 w-full md:w-1/2" />
+                  </CardHeader>
+                  <CardContent>
+                      <Skeleton className="h-32 w-full" />
+                  </CardContent>
+              </Card>
+          </div>
+        ) : (
+          <div className="space-y-6"> {/* Wrapper for stacked cards */}
+              {/* Teacher Leaderboard Card */}
+              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                <CardHeader>
+                  <CardTitle>Öğretmenler Kayıt Takip</CardTitle>
+                  <CardDescription>Öğretmenlerin sorumlu oldukları öğrencilerin kayıt yenileme yüzdelerine göre sıralaması. Detayları görmek için öğretmen adına tıklayın.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {teachersWithPercentage.length > 0 ? (
+                    <TeacherLeaderboard teachers={teachersWithPercentage} />
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">Liderlik tablosunu görmek için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* School Progress Card */}
+              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                <CardHeader>
+                  <CardTitle>Okul Geneli Kayıt Yenileme Durumu</CardTitle>
+                  <CardDescription>Tüm okula ait toplam öğrenci sayısı ve kayıt yenileme yüzdesi.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-center">
+                      {overallStats.totalStudentCount > 0 ? (
+                        <SchoolProgress
+                          totalStudents={overallStats.totalStudentCount}
+                          renewedStudents={overallStats.renewedStudentCount}
+                        />
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">Okul geneli ilerlemesini görmek için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
+                      )}
+                  </div>
+                </CardContent>
+              </Card>
+          </div>
+        )}
+      </div>
+      <div className="mt-auto pt-8 flex justify-center">
+        <Link href="/admin" passHref legacyBehavior>
             <Button variant="outline" size="sm">
                 <UserCog className="mr-2 h-4 w-4" />
                 A.Paneli
             </Button>
-         </Link>
-      </header>
-
-      {error && (
-        <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-md mb-6" role="alert">
-          <p className="font-medium">Hata!</p>
-          <p>{error}</p>
-        </div>
-      )}
-
-       {isLoading ? (
-         <div className="space-y-6">
-            {/* Skeleton for Teacher Leaderboard Card */}
-            <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-3/4 md:w-1/3 mb-2" />
-                  <Skeleton className="h-4 w-full md:w-2/3" />
-                </CardHeader>
-                <CardContent>
-                    <Skeleton className="h-40 w-full" />
-                </CardContent>
-            </Card>
-             {/* Skeleton for School Progress Card */}
-             <Card>
-                 <CardHeader>
-                     <Skeleton className="h-6 w-3/4 md:w-1/3 mb-2" />
-                    <Skeleton className="h-4 w-full md:w-1/2" />
-                 </CardHeader>
-                 <CardContent>
-                    <Skeleton className="h-32 w-full" />
-                 </CardContent>
-             </Card>
-         </div>
-      ) : (
-        <div className="space-y-6"> {/* Wrapper for stacked cards */}
-            {/* Teacher Leaderboard Card */}
-            <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-              <CardHeader>
-                <CardTitle>Öğretmenler Kayıt Takip</CardTitle>
-                <CardDescription>Öğretmenlerin sorumlu oldukları öğrencilerin kayıt yenileme yüzdelerine göre sıralaması. Detayları görmek için öğretmen adına tıklayın.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {teachersWithPercentage.length > 0 ? (
-                  <TeacherLeaderboard teachers={teachersWithPercentage} />
-                ) : (
-                   <p className="text-muted-foreground text-center py-4">Liderlik tablosunu görmek için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* School Progress Card */}
-            <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-              <CardHeader>
-                <CardTitle>Okul Geneli Kayıt Yenileme Durumu</CardTitle>
-                <CardDescription>Tüm okula ait toplam öğrenci sayısı ve kayıt yenileme yüzdesi.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                 <div className="flex justify-center">
-                     {overallStats.totalStudentCount > 0 ? (
-                       <SchoolProgress
-                         totalStudents={overallStats.totalStudentCount}
-                         renewedStudents={overallStats.renewedStudentCount}
-                       />
-                     ) : (
-                       <p className="text-muted-foreground text-center py-4">Okul geneli ilerlemesini görmek için lütfen Admin Panelinden Excel dosyasını yükleyin.</p>
-                     )}
-                 </div>
-              </CardContent>
-            </Card>
-        </div>
-      )}
+        </Link>
+      </div>
     </div>
   );
 }
