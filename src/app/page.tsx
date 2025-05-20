@@ -60,7 +60,6 @@ export default function Home() {
     if (typeof window !== 'undefined') {
         loadData();
     }
-    // The 'else' block previously here was redundant as useEffect only runs client-side.
     // isLoading is true by default, covering the pre-load server/client state.
   }, []);
 
@@ -73,7 +72,6 @@ export default function Home() {
                 localStorage.setItem('students', JSON.stringify(students));
               } else {
                 // If both are empty, check if they exist in localStorage before removing
-                // This avoids unnecessary localStorage operations if they were never there or already cleared.
                 const lsTeachers = localStorage.getItem('teachers');
                 const lsStudents = localStorage.getItem('students');
                 if (lsTeachers || lsStudents) { 
