@@ -43,50 +43,57 @@ export function TeacherLeaderboard({ teachers }: TeacherLeaderboardProps) {
         </TableHeader>
         <TableBody>
           {teachers.map((teacher, index) => (
-            <TableRow 
-              key={teacher.id} 
-              className={cn(
-                "hover:bg-secondary/50 transition-colors duration-150",
-                getRowClass(index)
+            <React.Fragment key={teacher.id}>
+              <TableRow 
+                className={cn(
+                  "hover:bg-secondary/50 transition-colors duration-150",
+                  getRowClass(index)
+                )}
+              >
+                <TableCell className="font-medium flex items-center justify-center h-full">{getMedal(index)}</TableCell>
+                <TableCell>
+                  <Link href={`/teacher/${encodeURIComponent(teacher.name)}`} passHref legacyBehavior>
+                    <a className="text-primary hover:underline font-medium cursor-pointer">
+                      {teacher.name}
+                    </a>
+                  </Link>
+                </TableCell>
+                <TableCell className="text-center">{teacher.studentCount}</TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    <Progress
+                      value={teacher.renewalPercentage}
+                      className="h-3 flex-grow"
+                      indicatorClassName={cn(
+                          teacher.renewalPercentage >= 67 ? 'bg-accent'
+                         : teacher.renewalPercentage >= 34 ? 'bg-chart-3'
+                         : 'bg-destructive',
+                           'transition-all duration-500 ease-out'
+                      )}
+                      aria-label={`${teacher.name} yenileme yüzdesi ${teacher.renewalPercentage}`}
+                     />
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                          'w-16 text-center justify-center transition-colors duration-300 border-transparent', 
+                          teacher.renewalPercentage >= 67 ? 'bg-accent text-accent-foreground'
+                         : teacher.renewalPercentage >= 34 ? 'bg-chart-3 text-black' 
+                         : 'bg-destructive text-destructive-foreground'
+                      )}
+                    >
+                       {teacher.renewalPercentage}%
+                    </Badge>
+                  </div>
+                </TableCell>
+              </TableRow>
+              {index === 2 && teachers.length > 3 && (
+                <TableRow className="border-t-2 border-border hover:bg-transparent focus:bg-transparent">
+                  <TableCell colSpan={4} className="h-3 p-0 text-center text-xs text-muted-foreground/80 bg-muted/30">
+                    {/* Optional: Add a subtle text like "Diğer Sıralamalar" or leave empty for just a visual break */}
+                  </TableCell>
+                </TableRow>
               )}
-            >
-              <TableCell className="font-medium flex items-center justify-center h-full">{getMedal(index)}</TableCell>
-              <TableCell>
-                {/* Wrap teacher name in Link */}
-                <Link href={`/teacher/${encodeURIComponent(teacher.name)}`} passHref legacyBehavior>
-                  <a className="text-primary hover:underline font-medium cursor-pointer">
-                    {teacher.name}
-                  </a>
-                </Link>
-              </TableCell>
-              <TableCell className="text-center">{teacher.studentCount}</TableCell>
-              <TableCell>
-                <div className="flex items-center space-x-2">
-                  <Progress
-                    value={teacher.renewalPercentage}
-                    className="h-3 flex-grow"
-                    indicatorClassName={cn(
-                        teacher.renewalPercentage >= 67 ? 'bg-accent' // 67-100: Green
-                       : teacher.renewalPercentage >= 34 ? 'bg-chart-3' // 34-66: Yellow
-                       : 'bg-destructive', // 0-33: Red
-                         'transition-all duration-500 ease-out'
-                    )} // Use color based on percentage for progress bar
-                    aria-label={`${teacher.name} yenileme yüzdesi ${teacher.renewalPercentage}`}
-                   />
-                  <Badge
-                    variant="outline" // Use outline as base
-                    className={cn(
-                        'w-16 text-center justify-center transition-colors duration-300 border-transparent', // Make border transparent
-                        teacher.renewalPercentage >= 67 ? 'bg-accent text-accent-foreground' // 67-100: Green
-                       : teacher.renewalPercentage >= 34 ? 'bg-chart-3 text-black' // 34-66: Yellow (using black text for contrast)
-                       : 'bg-destructive text-destructive-foreground' // 0-33: Red
-                    )}
-                  >
-                     {teacher.renewalPercentage}%
-                  </Badge>
-                </div>
-              </TableCell>
-            </TableRow>
+            </React.Fragment>
           ))}
         </TableBody>
       </Table>
