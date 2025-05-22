@@ -12,46 +12,80 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { UserCog } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadData = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const storedTeachers = localStorage.getItem('teachers');
-        const storedStudents = localStorage.getItem('students');
+        if (typeof window !== 'undefined') {
+          const storedTeachers = localStorage.getItem('teachers');
+          const storedStudents = localStorage.getItem('students');
+          
+          let parsedTeachers: Teacher[] = [];
+          let parsedStudents: Student[] = [];
+          let_parseError = false;
 
-        if (storedTeachers && storedStudents) {
-          const parsedTeachers: Teacher[] = JSON.parse(storedTeachers);
-          const parsedStudents: Student[] = JSON.parse(storedStudents);
-
-          if (Array.isArray(parsedTeachers) && Array.isArray(parsedStudents)) {
-            setTeachers(parsedTeachers);
-            setStudents(parsedStudents);
-          } else {
-             console.warn("Invalid data found in localStorage, resetting.");
-             localStorage.removeItem('teachers');
-             localStorage.removeItem('students');
-             setTeachers([]);
-             setStudents([]);
+          if (storedTeachers) {
+            try {
+              parsedTeachers = JSON.parse(storedTeachers);
+              if (!Array.isArray(parsedTeachers)) {
+                 console.warn("Invalid teachers data found in localStorage (not an array), initializing as empty.");
+                 parsedTeachers = [];
+                _parseError = true;
+              }
+            } catch (e) {
+              console.error("Failed to parse teachers from localStorage:", e);
+              parsedTeachers = [];
+              _parseError = true;
+            }
           }
-        } else {
-           setTeachers([]);
-           setStudents([]);
+
+          if (storedStudents) {
+            try {
+              parsedStudents = JSON.parse(storedStudents);
+               if (!Array.isArray(parsedStudents)) {
+                 console.warn("Invalid students data found in localStorage (not an array), initializing as empty.");
+                 parsedStudents = [];
+                 _parseError = true;
+               }
+            } catch (e) {
+              console.error("Failed to parse students from localStorage:", e);
+              parsedStudents = [];
+              _parseError = true;
+            }
+          }
+          
+          setTeachers(parsedTeachers);
+          setStudents(parsedStudents);
+
+          if (_parseError) {
+             setError("Yerel depodaki bazı veriler bozuk olabilir. Lütfen verileri kontrol edin veya Admin Panelinden yeniden yükleyin.");
+             toast({
+                title: "Veri Yükleme Uyarısı",
+                description: "Yerel depodaki bazı veriler okunamadı. Gösterilen listeler boş olabilir veya eksik veri içerebilir. Verilerin Admin Panelinden yeniden yüklenmesi önerilir.",
+                variant: "destructive",
+                duration: 7000, // Show for longer
+             });
+          } else if (!storedTeachers && !storedStudents) {
+            // If no data in localStorage, initialize with empty arrays (no error needed here)
+            setTeachers([]);
+            setStudents([]);
+          }
         }
-      } catch (e) {
-        console.error("Failed to load data from localStorage:", e);
-        localStorage.removeItem('teachers');
-        localStorage.removeItem('students');
+      } catch (e) { // Catch any other unexpected error during the setup
+        console.error("Unexpected error during data loading setup:", e);
         setTeachers([]);
         setStudents([]);
-        setError("Yerel depodan veri yüklenirken bir hata oluştu. Tarayıcı verilerini temizlemeyi deneyin veya verileri yeniden yükleyin.");
+        setError("Veri yüklenirken beklenmedik bir hata oluştu. Lütfen Admin Panelini kontrol edin.");
       } finally {
         setIsLoading(false);
       }
@@ -60,30 +94,7 @@ export default function Home() {
     if (typeof window !== 'undefined') {
         loadData();
     }
-  }, []);
-
-  useEffect(() => {
-      if (typeof window !== 'undefined') {
-        try {
-          if (!isLoading) {
-              if (teachers.length > 0 || students.length > 0) {
-                localStorage.setItem('teachers', JSON.stringify(teachers));
-                localStorage.setItem('students', JSON.stringify(students));
-              } else {
-                const lsTeachers = localStorage.getItem('teachers');
-                const lsStudents = localStorage.getItem('students');
-                if (lsTeachers || lsStudents) {
-                    localStorage.removeItem('teachers');
-                    localStorage.removeItem('students');
-                }
-              }
-          }
-        } catch (e) {
-          console.error("Failed to save data to localStorage:", e);
-          setError("Veriler yerel depoya kaydedilemedi. Depolama alanı dolu olabilir veya tarayıcı ayarları engelliyor olabilir.");
-        }
-      }
-  }, [teachers, students, isLoading]);
+  }, [toast]); // Added toast to dependency array
 
    const teachersWithPercentage = React.useMemo(() => {
       const studentsByTeacher: Record<string, Student[]> = students.reduce((acc, student) => {
@@ -139,7 +150,7 @@ export default function Home() {
         notRenewed: counts.notRenewed,
       }))
       .sort((a, b) => {
-        if (a.name === "Belirtilmemiş") return 1; // "Belirtilmemiş" sona gelsin
+        if (a.name === "Belirtilmemiş") return 1; 
         if (b.name === "Belirtilmemiş") return -1;
         const aNum = parseInt(a.name);
         const bNum = parseInt(b.name);
@@ -239,9 +250,8 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              {/* Sınıf Bazlı Pasta Grafikler Bölümü */}
               {overallStats.totalStudentCount > 0 && classRenewalStats.length > 0 && (
-                <div className="pt-2"> {/* Removed border-t and mt-6 for closer spacing */}
+                <div className="pt-2"> 
                   <div className="flex items-center space-x-2 mb-4 px-1">
                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M21.21 15.89A10 10 0 1 1 8.11 2.79"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
                     <h3 className="text-xl font-semibold text-primary">Sınıf Bazlı Yenileme Dağılımı</h3>
@@ -282,3 +292,4 @@ export default function Home() {
     </div>
   );
 }
+

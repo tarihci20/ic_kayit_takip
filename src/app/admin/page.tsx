@@ -43,8 +43,6 @@ export default function AdminPage() {
       }
       setIsAuthCheckComplete(true);
     } else {
-      // Fallback for non-browser environments (e.g., SSR, though useEffect is client-side)
-      // Ensure a defined state to prevent UI flicker or inconsistent states.
       setIsAuthenticated(false);
       setIsAuthCheckComplete(true);
     }
@@ -60,32 +58,62 @@ export default function AdminPage() {
           const storedTeachers = localStorage.getItem('teachers');
           const storedStudents = localStorage.getItem('students');
 
-          if (storedTeachers && storedStudents) {
-            const parsedTeachers: Teacher[] = JSON.parse(storedTeachers);
-            const parsedStudents: Student[] = JSON.parse(storedStudents);
-            if (Array.isArray(parsedTeachers) && Array.isArray(parsedStudents)) {
-              setTeachers(parsedTeachers);
-              setStudents(parsedStudents);
-            } else {
-              console.warn("Invalid data found in localStorage, resetting.");
-              localStorage.removeItem('teachers');
-              localStorage.removeItem('students');
-              setTeachers([]);
-              setStudents([]);
-              setError("Yerel depoda geçersiz veri bulundu, veriler sıfırlandı.");
+          let parsedTeachers: Teacher[] = [];
+          let parsedStudents: Student[] = [];
+          let_parseError = false;
+
+          if (storedTeachers) {
+            try {
+              parsedTeachers = JSON.parse(storedTeachers);
+              if (!Array.isArray(parsedTeachers)) {
+                console.warn("Invalid teachers data found in localStorage (not an array).");
+                parsedTeachers = [];
+                _parseError = true;
+              }
+            } catch (e) {
+              console.error("Failed to parse teachers from localStorage:", e);
+              parsedTeachers = [];
+              _parseError = true;
             }
-          } else {
-            // If no data in localStorage, initialize with empty arrays
+          }
+
+          if (storedStudents) {
+            try {
+              parsedStudents = JSON.parse(storedStudents);
+              if (!Array.isArray(parsedStudents)) {
+                console.warn("Invalid students data found in localStorage (not an array).");
+                parsedStudents = [];
+                _parseError = true;
+              }
+            } catch (e) {
+              console.error("Failed to parse students from localStorage:", e);
+              parsedStudents = [];
+              _parseError = true;
+            }
+          }
+          
+          setTeachers(parsedTeachers);
+          setStudents(parsedStudents);
+
+          if (_parseError) {
+             setError("Yerel depodaki bazı veriler bozuk olabilir. Lütfen verileri kontrol edin veya yeniden yükleyin.");
+             toast({
+                title: "Veri Yükleme Uyarısı",
+                description: "Yerel depodaki bazı veriler okunamadı. Listeler boş olabilir veya eksik veri içerebilir. Verileri yeniden yüklemeniz önerilir.",
+                variant: "destructive",
+                duration: 7000,
+             });
+          } else if (!storedTeachers && !storedStudents) {
+            // If no data in localStorage, initialize with empty arrays (no error needed here)
             setTeachers([]);
             setStudents([]);
           }
-        } catch (e) {
-          console.error("Failed to load data from localStorage:", e);
-          localStorage.removeItem('teachers');
-          localStorage.removeItem('students');
+
+        } catch (e) { // Catch any other unexpected error during the setup
+          console.error("Unexpected error during data loading setup:", e);
           setTeachers([]);
           setStudents([]);
-          setError("Yerel depodan veri yüklenirken bir hata oluştu.");
+          setError("Veri yüklenirken beklenmedik bir hata oluştu.");
         } finally {
           setIsLoading(false); // Set loading false after attempt
         }
@@ -96,8 +124,7 @@ export default function AdminPage() {
       setStudents([]);
       setIsLoading(false);
     }
-    // If auth check is not complete, isLoading remains true (its initial state)
-  }, [isAuthenticated, isAuthCheckComplete]);
+  }, [isAuthenticated, isAuthCheckComplete, toast]);
 
   useEffect(() => {
     // This effect handles saving data to localStorage
@@ -114,9 +141,14 @@ export default function AdminPage() {
       } catch (e) {
         console.error("Failed to save data to localStorage:", e);
         setError("Veriler yerel depoya kaydedilemedi.");
+        toast({
+            title: "Kayıt Hatası!",
+            description: "Veriler yerel depoya kaydedilemedi. Tarayıcı depolama alanı dolu olabilir.",
+            variant: "destructive",
+        });
       }
     }
-  }, [teachers, students, isLoading, isAuthenticated, isAuthCheckComplete]);
+  }, [teachers, students, isLoading, isAuthenticated, isAuthCheckComplete, toast]);
 
   const handleDataUpload = (uploadedTeachers: Teacher[], uploadedStudents: Student[]) => {
     setTeachers(uploadedTeachers);
@@ -144,18 +176,15 @@ export default function AdminPage() {
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     setError(null);
-    // Data loading will be triggered by the useEffect watching isAuthenticated and isAuthCheckComplete
   };
 
    const handleLogout = () => {
-    setIsAuthenticated(false); // This will trigger data clearing via useEffect
+    setIsAuthenticated(false); 
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('isAdminAuthenticated');
       localStorage.removeItem('isAdminAuthenticated');
     }
-    // No need to setTeachers/Students to [] here, useEffect will handle it
     setError(null);
-    // setIsLoading(false); // Let useEffect handle loading state based on auth
   };
 
   const handleDownloadCurrentData = () => {
@@ -169,7 +198,6 @@ export default function AdminPage() {
     }
 
     try {
-      // Prepare student data
       const studentsToExport = students.map(s => ({
         'Öğrenci ID': s.id,
         'Öğrenci Adı': s.name,
@@ -178,7 +206,6 @@ export default function AdminPage() {
         'Kayıt Yeniledi': s.renewed ? 'Evet' : 'Hayır',
       }));
 
-      // Prepare teacher data
       const teachersToExport = teachers.map(t => ({
         'Öğretmen ID': t.id,
         'Öğretmen Adı': t.name,
@@ -311,7 +338,7 @@ export default function AdminPage() {
                  <Skeleton className="h-10 w-full" />
               </div>
             ) : (
-              teachers.length > 0 || students.length > 0 || globalSearchTerm ? ( // Allow rendering TeacherDetails if there's a search term even if no initial data
+              teachers.length > 0 || students.length > 0 || globalSearchTerm ? ( 
                 <TeacherDetails
                   teachers={teachers}
                   students={displayStudentsForTeacherDetails} 
