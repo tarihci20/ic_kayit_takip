@@ -32,7 +32,7 @@ export default function Home() {
           
           let parsedTeachers: Teacher[] = [];
           let parsedStudents: Student[] = [];
-          let_parseError = false;
+          let _parseError = false; // Fixed typo here
 
           if (storedTeachers) {
             try {
@@ -68,20 +68,21 @@ export default function Home() {
           setStudents(parsedStudents);
 
           if (_parseError) {
-             setError("Yerel depodaki bazı veriler bozuk olabilir. Lütfen verileri kontrol edin veya Admin Panelinden yeniden yükleyin.");
+             // Do not remove items from localStorage here on the main page.
+             // Let the admin panel handle data corruption by re-upload.
+             setError("Yerel depodaki bazı veriler bozuk olabilir. Lütfen Admin Panelinden verileri kontrol edin veya yeniden yükleyin.");
              toast({
                 title: "Veri Yükleme Uyarısı",
                 description: "Yerel depodaki bazı veriler okunamadı. Gösterilen listeler boş olabilir veya eksik veri içerebilir. Verilerin Admin Panelinden yeniden yüklenmesi önerilir.",
                 variant: "destructive",
-                duration: 7000, // Show for longer
+                duration: 7000,
              });
           } else if (!storedTeachers && !storedStudents) {
-            // If no data in localStorage, initialize with empty arrays (no error needed here)
             setTeachers([]);
             setStudents([]);
           }
         }
-      } catch (e) { // Catch any other unexpected error during the setup
+      } catch (e) {
         console.error("Unexpected error during data loading setup:", e);
         setTeachers([]);
         setStudents([]);
@@ -93,8 +94,19 @@ export default function Home() {
 
     if (typeof window !== 'undefined') {
         loadData();
+        
+        // Listen for storage changes to keep data in sync if admin updates it
+        const handleStorageChange = (event: StorageEvent) => {
+            if (event.key === 'teachers' || event.key === 'students') {
+                loadData();
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
     }
-  }, [toast]); // Added toast to dependency array
+  }, [toast]);
 
    const teachersWithPercentage = React.useMemo(() => {
       const studentsByTeacher: Record<string, Student[]> = students.reduce((acc, student) => {

@@ -35,10 +35,10 @@ export default function AdminPage() {
         setIsAuthenticated(true);
       } else {
         const sessionAuth = sessionStorage.getItem('isAdminAuthenticated');
-        if (sessionAuth === 'true') { // Check if sessionAuth is 'true'
+        if (sessionAuth === 'true') { 
            setIsAuthenticated(true);
         } else {
-           setIsAuthenticated(false); // Explicitly set to false if neither is true
+           setIsAuthenticated(false); 
         }
       }
       setIsAuthCheckComplete(true);
@@ -49,10 +49,9 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    // This effect handles loading data from localStorage *after* auth check is complete
     if (isAuthCheckComplete && isAuthenticated) {
       if (typeof window !== 'undefined') {
-        setIsLoading(true); // Set loading true when attempting to load
+        setIsLoading(true);
         setError(null);
         try {
           const storedTeachers = localStorage.getItem('teachers');
@@ -60,7 +59,7 @@ export default function AdminPage() {
 
           let parsedTeachers: Teacher[] = [];
           let parsedStudents: Student[] = [];
-          let_parseError = false;
+          let _parseError = false; // Fixed typo here
 
           if (storedTeachers) {
             try {
@@ -96,6 +95,8 @@ export default function AdminPage() {
           setStudents(parsedStudents);
 
           if (_parseError) {
+             // Do not remove items from localStorage if parsing fails.
+             // Show an error and suggest re-upload.
              setError("Yerel depodaki bazı veriler bozuk olabilir. Lütfen verileri kontrol edin veya yeniden yükleyin.");
              toast({
                 title: "Veri Yükleme Uyarısı",
@@ -104,22 +105,20 @@ export default function AdminPage() {
                 duration: 7000,
              });
           } else if (!storedTeachers && !storedStudents) {
-            // If no data in localStorage, initialize with empty arrays (no error needed here)
             setTeachers([]);
             setStudents([]);
           }
 
-        } catch (e) { // Catch any other unexpected error during the setup
+        } catch (e) { 
           console.error("Unexpected error during data loading setup:", e);
           setTeachers([]);
           setStudents([]);
           setError("Veri yüklenirken beklenmedik bir hata oluştu.");
         } finally {
-          setIsLoading(false); // Set loading false after attempt
+          setIsLoading(false); 
         }
       }
     } else if (isAuthCheckComplete && !isAuthenticated) {
-      // If not authenticated but auth check is done, clear data and stop loading
       setTeachers([]);
       setStudents([]);
       setIsLoading(false);
@@ -127,14 +126,12 @@ export default function AdminPage() {
   }, [isAuthenticated, isAuthCheckComplete, toast]);
 
   useEffect(() => {
-    // This effect handles saving data to localStorage
     if (isAuthenticated && typeof window !== 'undefined' && !isLoading && isAuthCheckComplete) {
       try {
         if (teachers.length > 0 || students.length > 0) {
             localStorage.setItem('teachers', JSON.stringify(teachers));
             localStorage.setItem('students', JSON.stringify(students));
         } else {
-             // Remove from localStorage if both are empty, to keep it clean
              localStorage.removeItem('teachers');
              localStorage.removeItem('students');
         }
@@ -153,8 +150,9 @@ export default function AdminPage() {
   const handleDataUpload = (uploadedTeachers: Teacher[], uploadedStudents: Student[]) => {
     setTeachers(uploadedTeachers);
     setStudents(uploadedStudents);
-    setGlobalSearchTerm(''); // Reset global search on new data upload
+    setGlobalSearchTerm(''); 
     setError(null);
+    // Data is saved in the useEffect hook above when teachers/students change
   };
 
   const handleRenewalToggle = (studentId: number) => {
@@ -163,6 +161,7 @@ export default function AdminPage() {
         student.id === studentId ? { ...student, renewed: !student.renewed } : student
       )
     );
+    // Data is saved in the useEffect hook above when students change
   };
 
   const handleBulkRenewalToggle = (studentIdsToUpdate: number[], newRenewedState: boolean) => {
@@ -171,6 +170,7 @@ export default function AdminPage() {
         studentIdsToUpdate.includes(student.id) ? { ...student, renewed: newRenewedState } : student
       )
     );
+    // Data is saved in the useEffect hook above when students change
   };
 
   const handleLoginSuccess = () => {
@@ -184,6 +184,8 @@ export default function AdminPage() {
       sessionStorage.removeItem('isAdminAuthenticated');
       localStorage.removeItem('isAdminAuthenticated');
     }
+    setTeachers([]); // Clear data on logout
+    setStudents([]); // Clear data on logout
     setError(null);
   };
 
@@ -318,15 +320,15 @@ export default function AdminPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="mb-6"> {/* Increased bottom margin for spacing */}
-              <Label htmlFor="global-student-search" className="text-base font-semibold">Tüm Öğrencilerde Ara</Label> {/* Made label bolder and larger */}
+            <div className="mb-6"> 
+              <Label htmlFor="global-student-search" className="text-base font-semibold">Tüm Öğrencilerde Ara</Label> 
               <Input
                 id="global-student-search"
                 type="text"
                 placeholder="Öğrenci adıyla tüm listede ara..."
                 value={globalSearchTerm}
                 onChange={(e) => setGlobalSearchTerm(e.target.value)}
-                className="mt-2 text-base h-11" /* Increased input size */
+                className="mt-2 text-base h-11" 
               />
             </div>
             {isLoading ? (
