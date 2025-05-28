@@ -39,25 +39,32 @@ export default function AdminPage() {
       }
       setIsAuthCheckComplete(true);
     } else {
+      // Fallback for non-browser environments, though this page is client-side
       setIsAuthenticated(false);
       setIsAuthCheckComplete(true);
     }
   }, []);
 
   useEffect(() => {
+    console.log("[AdminPage] Students state updated:", students);
+  }, [students]);
+
+  useEffect(() => {
     async function loadDataFromFirestore() {
       if (isAuthCheckComplete && isAuthenticated) {
         setIsLoading(true);
         setError(null);
+        console.log("[AdminPage] Attempting to load data from Firestore...");
         try {
           const [fetchedStudents, fetchedTeachers] = await Promise.all([
             getStudents(),
             getTeachers()
           ]);
+          console.log(`[AdminPage] Data fetched from Firestore - Students: ${fetchedStudents.length}, Teachers: ${fetchedTeachers.length}`);
           setStudents(fetchedStudents);
           setTeachers(fetchedTeachers);
         } catch (err: any) {
-          console.error("Error loading data from Firestore:", err);
+          console.error("[AdminPage] Error loading data from Firestore:", err);
           setError(err.message || "Veriler Firestore'dan yüklenirken bir hata oluştu.");
           setStudents([]);
           setTeachers([]);
@@ -71,29 +78,36 @@ export default function AdminPage() {
           setIsLoading(false);
         }
       } else if (isAuthCheckComplete && !isAuthenticated) {
+        console.log("[AdminPage] Not authenticated or auth check not complete, clearing data.");
         setTeachers([]);
         setStudents([]);
         setIsLoading(false);
       }
     }
     loadDataFromFirestore();
-  }, [isAuthenticated, isAuthCheckComplete, toast]);
+  }, [isAuthenticated, isAuthCheckComplete]); // Removed toast from dependencies
 
   const handleDataUpload = async (uploadedTeachers: Teacher[], uploadedStudents: Student[]) => {
-    setIsLoading(true); // Show loading indicator during upload
+    setIsLoading(true);
+    console.log("[AdminPage] Data received from UploadForm - Students:", uploadedStudents.length, "Teachers:", uploadedTeachers.length);
+    if (uploadedStudents.length > 0) {
+      console.log("[AdminPage] Sample student from upload:", uploadedStudents[0]);
+    }
+
     try {
       await uploadStudentsAndTeachers(uploadedStudents, uploadedTeachers);
+      console.log("[AdminPage] Firestore upload successful.");
       setTeachers(uploadedTeachers);
       setStudents(uploadedStudents);
       setGlobalSearchTerm('');
       setError(null);
       toast({
         title: "Başarılı!",
-        description: "Veriler başarıyla Firestore'a yüklendi.",
+        description: `Firestore'a ${uploadedStudents.length} öğrenci ve ${uploadedTeachers.length} öğretmen başarıyla yüklendi.`,
         variant: "default",
       });
     } catch (err: any) {
-      console.error("Error uploading data to Firestore:", err);
+      console.error("[AdminPage] Error in handleDataUpload:", err);
       setError(err.message || "Veriler Firestore'a yüklenirken bir hata oluştu.");
       toast({
         title: "Yükleme Başarısız!",
@@ -107,7 +121,6 @@ export default function AdminPage() {
 
   const handleRenewalToggle = async (studentId: number) => {
     const originalStudents = [...students];
-    // Optimistically update UI
     setStudents(prevStudents =>
       prevStudents.map(student =>
         student.id === studentId ? { ...student, renewed: !student.renewed } : student
@@ -117,12 +130,12 @@ export default function AdminPage() {
       const studentToUpdate = originalStudents.find(s => s.id === studentId);
       if (studentToUpdate) {
         await updateStudentRenewal(studentId, !studentToUpdate.renewed);
-        // No toast for individual toggle to keep UI less noisy, or add if preferred
       }
-    } catch (err: any) {
-      console.error("Error updating student renewal in Firestore:", err);
+    } catch (err: any)
+{
+      console.error("[AdminPage] Error updating student renewal in Firestore:", err);
       setError(err.message || "Öğrenci kayıt durumu güncellenirken bir hata oluştu.");
-      setStudents(originalStudents); // Revert optimistic update
+      setStudents(originalStudents);
       toast({
         title: "Güncelleme Başarısız!",
         description: err.message || "Öğrenci kayıt durumu güncellenemedi.",
@@ -133,7 +146,6 @@ export default function AdminPage() {
 
   const handleBulkRenewalToggle = async (studentIdsToUpdate: number[], newRenewedState: boolean) => {
     const originalStudents = [...students];
-    // Optimistically update UI
     setStudents(prevStudents =>
       prevStudents.map(student =>
         studentIdsToUpdate.includes(student.id) ? { ...student, renewed: newRenewedState } : student
@@ -147,9 +159,9 @@ export default function AdminPage() {
         variant: "default",
       });
     } catch (err: any) {
-      console.error("Error bulk updating student renewals in Firestore:", err);
+      console.error("[AdminPage] Error bulk updating student renewals in Firestore:", err);
       setError(err.message || "Öğrenci kayıt durumları toplu güncellenirken bir hata oluştu.");
-      setStudents(originalStudents); // Revert optimistic update
+      setStudents(originalStudents);
       toast({
         title: "Toplu Güncelleme Başarısız!",
         description: err.message || "Öğrenci kayıt durumları toplu güncellenemedi.",
@@ -161,7 +173,6 @@ export default function AdminPage() {
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     setError(null);
-    // Data loading is triggered by useEffect dependency on isAuthenticated
   };
 
   const handleLogout = () => {
@@ -173,7 +184,6 @@ export default function AdminPage() {
     setTeachers([]);
     setStudents([]);
     setError(null);
-    // No need to clear Firestore data on logout
   };
 
   const handleDownloadCurrentData = () => {
@@ -340,7 +350,7 @@ export default function AdminPage() {
                 <TeacherDetails
                   teachers={teachers}
                   students={displayStudentsForTeacherDetails}
-                  allStudents={students} // Pass all students for accurate stats calculation
+                  allStudents={students}
                   onRenewalToggle={handleRenewalToggle}
                   onBulkRenewalToggle={handleBulkRenewalToggle}
                   isAdminView={true}

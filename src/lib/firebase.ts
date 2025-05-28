@@ -6,13 +6,12 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 // Firebase projenizin yapılandırma bilgileri
 // BU BİLGİLERİ KENDİ FIREBASE PROJENİZDEN ALIP GÜNCELLEYİN!
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-  measurementId: "YOUR_MEASUREMENT_ID" // Google Analytics için isteğe bağlı
+  apiKey: "AIzaSyB0BTWyiuf7RrGHzYoH2ZAld-hxBp06YNQ",
+  authDomain: "ickayittakip-5edjn.firebaseapp.com",
+  projectId: "ickayittakip-5edjn",
+  storageBucket: "ickayittakip-5edjn.firebasestorage.app",
+  messagingSenderId: "336899798809",
+  appId: "1:336899798809:web:db9a94fc16233cfeb8b788"
 };
 
 let app: FirebaseApp;
