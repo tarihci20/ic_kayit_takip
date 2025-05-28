@@ -1,3 +1,4 @@
+
 // src/lib/firebase.ts
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getFirestore, type Firestore } from 'firebase/firestore';
@@ -6,7 +7,6 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 // Firebase projenizin yapılandırma bilgileri
 // LÜTFEN BU BİLGİLERİ KENDİ FIREBASE PROJENİZDEN ALDIĞINIZ
 // GERÇEK firebaseConfig BİLGİLERİYLE GÜNCELLEYİN!
-// AŞAĞIDAKİ ÖRNEK YAPILANDIRMAYI KULLANMAYIN.
 const firebaseConfig = {
   apiKey: "AIzaSyB0BTWyiuf7RrGHzYoH2ZAld-hxBp06YNQ",
   authDomain: "ickayittakip-5edjn.firebaseapp.com",
@@ -26,9 +26,9 @@ if (getApps().length === 0) {
     console.log("Firebase initialized successfully!");
   } catch (error) {
     console.error("Firebase initialization error:", error);
-    // Hata durumunda app ve db'nin tanımsız kalmasını engellemek için
-    // veya uygun bir fallback sağlamak gerekebilir.
-    // Şimdilik sadece hatayı logluyoruz.
+    // Hata durumunda bir fallback sağlamak veya hatayı yeniden fırlatmak düşünülebilir.
+    // Şimdilik, eğer başlatma başarısız olursa app tanımsız kalacak
+    // ve db başlatma da hata verecektir.
   }
 } else {
   app = getApps()[0];
@@ -38,16 +38,17 @@ if (getApps().length === 0) {
 // app'in başlatıldığından emin olduktan sonra db'yi al
 // Eğer initializeApp hata verirse app tanımsız olabilir.
 // Bu durumu ele almak için bir kontrol eklenebilir.
-if (app!) { // app'in null veya undefined olmadığını varsayıyoruz, ya da bir kontrol ekleyin
+if (app!) { // app'in null veya undefined olmadığını varsayıyoruz
   db = getFirestore(app);
 } else {
   // Firebase başlatılamadıysa db tanımsız kalır.
   // Bu durumda uygulamanın nasıl davranacağına karar vermek gerekir.
-  // Örneğin, bir hata mesajı göstermek veya bazı özellikleri devre dışı bırakmak.
   console.error("Firebase app is not initialized. Firestore cannot be accessed.");
-  // db = null; // veya uygun bir fallback
+  // db'ye bir fallback değeri atamak veya bir hata fırlatmak gerekebilir.
+  // Örneğin: throw new Error("Firestore could not be initialized.");
+  // Şimdilik db'yi undefined bırakıyoruz, bu da sonraki kodlarda hataya yol açacaktır.
 }
 
-// auth = getAuth(app); // Gelecekte Firebase Authentication için
+// auth = getAuth(app!); // Gelecekte Firebase Authentication için app'in tanımlı olduğunu varsayarak
 
-export { db /*, auth */ }; // db'yi ve gelecekte auth'u dışa aktarın
+export { db /*, auth */ };
