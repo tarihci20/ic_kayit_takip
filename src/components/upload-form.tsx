@@ -131,10 +131,10 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
         // --- End Validation ---
 
 
-        onDataUpload(teachers, students);
+        onDataUpload(teachers, students); // Call onDataUpload only on successful parsing and validation
         toast({
           title: "Başarılı!",
-          description: `${teachers.length} öğretmen ve ${students.length} öğrenci verisi başarıyla yüklendi.`,
+          description: `${teachers.length} öğretmen ve ${students.length} öğrenci verisi Firestore'a yüklenmek üzere işlendi.`,
           variant: "default",
           action: <FileCheck2 className="h-5 w-5 text-primary" />,
         });
@@ -145,7 +145,8 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
         const errorMessage = err.message || "Excel dosyası işlenirken bilinmeyen bir hata oluştu. Lütfen dosya formatını, sayfa adlarını ('Öğretmenler', 'Öğrenciler') ve gerekli sütun başlıklarını kontrol edin.";
         setError(errorMessage);
         setFileName(null);
-        onDataUpload([], []);
+        // DO NOT call onDataUpload([], []) here for content errors.
+        // This prevents clearing Firestore if the Excel file has data validation issues.
         toast({
           title: "Yükleme Başarısız!",
           description: errorMessage,
@@ -155,7 +156,7 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
       } finally {
         setIsUploading(false);
          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
+            fileInputRef.current.value = ''; // Reset file input
          }
       }
     };
@@ -192,7 +193,7 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
            {'Öğrenci ID': 2, 'Öğrenci Adı': 'Fatma Kaya', 'Sınıf': '5', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'Hayır'},
            {'Öğrenci ID': 3, 'Öğrenci Adı': 'Hasan Demir', 'Sınıf': '6', 'Öğretmen Adı': 'Mehmet Öztürk', 'Kayıt Yeniledi': '1'},
            {'Öğrenci ID': 4, 'Öğrenci Adı': 'Zeynep Çelik', 'Sınıf': '6', 'Öğretmen Adı': 'Mehmet Öztürk', 'Kayıt Yeniledi': ''},
-           {'Öğrenci ID': 5, 'Öğrenci Adı': 'Emre Arslan', 'Sınıf': '', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'X'},
+           {'Öğrenci ID': 5, 'Öğrenci Adı': 'Emre Arslan', 'Sınıf': '7', 'Öğretmen Adı': 'Ayşe Yılmaz', 'Kayıt Yeniledi': 'X'},
          ];
 
          // Create worksheets
@@ -265,5 +266,3 @@ export function UploadForm({ onDataUpload }: UploadFormProps) {
     </div>
   );
 }
-
-    
