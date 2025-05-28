@@ -12,7 +12,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, LogOut, Download } from 'lucide-react';
+import { ArrowLeft, LogOut, Download, ListX } from 'lucide-react';
 import { LoginForm } from '@/components/login-form';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
@@ -59,7 +59,7 @@ export default function AdminPage() {
 
           let parsedTeachers: Teacher[] = [];
           let parsedStudents: Student[] = [];
-          let _parseError = false; // Fixed typo here
+          let _parseError = false; 
 
           if (storedTeachers) {
             try {
@@ -95,8 +95,6 @@ export default function AdminPage() {
           setStudents(parsedStudents);
 
           if (_parseError) {
-             // Do not remove items from localStorage if parsing fails.
-             // Show an error and suggest re-upload.
              setError("Yerel depodaki bazı veriler bozuk olabilir. Lütfen verileri kontrol edin veya yeniden yükleyin.");
              toast({
                 title: "Veri Yükleme Uyarısı",
@@ -132,8 +130,16 @@ export default function AdminPage() {
             localStorage.setItem('teachers', JSON.stringify(teachers));
             localStorage.setItem('students', JSON.stringify(students));
         } else {
-             localStorage.removeItem('teachers');
-             localStorage.removeItem('students');
+             // If both are empty, it's okay for localStorage to be empty too.
+             // Do not remove if only one is empty, preserve the other.
+             if (teachers.length === 0 && students.length === 0) {
+                localStorage.removeItem('teachers');
+                localStorage.removeItem('students');
+             } else if (teachers.length === 0 && students.length > 0) {
+                 localStorage.removeItem('teachers'); // only remove teachers
+             } else if (students.length === 0 && teachers.length > 0) {
+                 localStorage.removeItem('students'); // only remove students
+             }
         }
       } catch (e) {
         console.error("Failed to save data to localStorage:", e);
@@ -152,7 +158,6 @@ export default function AdminPage() {
     setStudents(uploadedStudents);
     setGlobalSearchTerm(''); 
     setError(null);
-    // Data is saved in the useEffect hook above when teachers/students change
   };
 
   const handleRenewalToggle = (studentId: number) => {
@@ -161,7 +166,6 @@ export default function AdminPage() {
         student.id === studentId ? { ...student, renewed: !student.renewed } : student
       )
     );
-    // Data is saved in the useEffect hook above when students change
   };
 
   const handleBulkRenewalToggle = (studentIdsToUpdate: number[], newRenewedState: boolean) => {
@@ -170,7 +174,6 @@ export default function AdminPage() {
         studentIdsToUpdate.includes(student.id) ? { ...student, renewed: newRenewedState } : student
       )
     );
-    // Data is saved in the useEffect hook above when students change
   };
 
   const handleLoginSuccess = () => {
@@ -184,8 +187,8 @@ export default function AdminPage() {
       sessionStorage.removeItem('isAdminAuthenticated');
       localStorage.removeItem('isAdminAuthenticated');
     }
-    setTeachers([]); // Clear data on logout
-    setStudents([]); // Clear data on logout
+    setTeachers([]); 
+    setStudents([]); 
     setError(null);
   };
 
@@ -271,6 +274,7 @@ export default function AdminPage() {
                width={40}
                height={40}
                className="rounded-full object-cover"
+               data-ai-hint="logo school"
              />
           <h1 className="text-2xl md:text-3xl font-bold text-primary">
             Kayıt <span className="text-vildan-burgundy">Takip</span> - Admin Paneli
@@ -301,7 +305,7 @@ export default function AdminPage() {
         <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
           <CardHeader>
             <CardTitle>Veri Yükleme</CardTitle>
-            <CardDescription>Öğretmen ve öğrenci listelerini içeren Excel dosyasını yükleyin veya güncel verileri indirin.</CardDescription>
+            <CardDescription>Öğretmen ve öğrenci listelerini içeren Excel dosyasını yükleyin.</CardDescription>
           </CardHeader>
           <CardContent>
             <UploadForm onDataUpload={handleDataUpload} />
@@ -309,15 +313,23 @@ export default function AdminPage() {
         </Card>
 
         <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-          <CardHeader className="flex flex-row justify-between items-center">
+          <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
             <div>
               <CardTitle>Kayıt Yenileme Yönetimi</CardTitle>
               <CardDescription>Öğrencilerin kayıt yenileme durumlarını buradan güncelleyebilirsiniz.</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={handleDownloadCurrentData} disabled={isLoading || (students.length === 0 && teachers.length === 0)}>
-              <Download className="mr-2 h-4 w-4" />
-              Güncel Listeyi İndir
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                <Link href="/admin/not-renewed" passHref legacyBehavior>
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                        <ListX className="mr-2 h-4 w-4" />
+                        Kayıt Yenilemeyenler
+                    </Button>
+                </Link>
+                <Button variant="outline" size="sm" onClick={handleDownloadCurrentData} disabled={isLoading || (students.length === 0 && teachers.length === 0)} className="w-full sm:w-auto">
+                  <Download className="mr-2 h-4 w-4" />
+                  Güncel Listeyi İndir
+                </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="mb-6"> 
@@ -359,3 +371,4 @@ export default function AdminPage() {
     </div>
   );
 }
+
