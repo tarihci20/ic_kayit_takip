@@ -1,4 +1,3 @@
-
 // src/lib/firebase.ts
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getFirestore, type Firestore } from 'firebase/firestore';
@@ -11,7 +10,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyB0BTWyiuf7RrGHzYoH2ZAld-hxBp06YNQ",
   authDomain: "ickayittakip-5edjn.firebaseapp.com",
   projectId: "ickayittakip-5edjn",
-  storageBucket: "ickayittakip-5edjn.firebasestorage.app",
+  storageBucket: "ickayittakip-5edjn.appspot.com", // Ekran görüntüsüne göre güncellendi
   messagingSenderId: "336899798809",
   appId: "1:336899798809:web:db9a94fc16233cfeb8b788"
 };
@@ -22,13 +21,12 @@ let db: Firestore;
 
 if (getApps().length === 0) {
   try {
+    console.log("Attempting to initialize Firebase with config:", firebaseConfig);
     app = initializeApp(firebaseConfig);
     console.log("Firebase initialized successfully!");
   } catch (error) {
     console.error("Firebase initialization error:", error);
     // Hata durumunda bir fallback sağlamak veya hatayı yeniden fırlatmak düşünülebilir.
-    // Şimdilik, eğer başlatma başarısız olursa app tanımsız kalacak
-    // ve db başlatma da hata verecektir.
   }
 } else {
   app = getApps()[0];
@@ -36,17 +34,17 @@ if (getApps().length === 0) {
 }
 
 // app'in başlatıldığından emin olduktan sonra db'yi al
-// Eğer initializeApp hata verirse app tanımsız olabilir.
-// Bu durumu ele almak için bir kontrol eklenebilir.
-if (app!) { // app'in null veya undefined olmadığını varsayıyoruz
-  db = getFirestore(app);
+if (app!) {
+  try {
+    db = getFirestore(app);
+    console.log("Firestore instance created.");
+  } catch (error) {
+    console.error("Error creating Firestore instance:", error);
+     // db'ye bir fallback değeri atamak veya bir hata fırlatmak gerekebilir.
+     // Örneğin: throw new Error("Firestore could not be initialized.");
+  }
 } else {
-  // Firebase başlatılamadıysa db tanımsız kalır.
-  // Bu durumda uygulamanın nasıl davranacağına karar vermek gerekir.
   console.error("Firebase app is not initialized. Firestore cannot be accessed.");
-  // db'ye bir fallback değeri atamak veya bir hata fırlatmak gerekebilir.
-  // Örneğin: throw new Error("Firestore could not be initialized.");
-  // Şimdilik db'yi undefined bırakıyoruz, bu da sonraki kodlarda hataya yol açacaktır.
 }
 
 // auth = getAuth(app!); // Gelecekte Firebase Authentication için app'in tanımlı olduğunu varsayarak
