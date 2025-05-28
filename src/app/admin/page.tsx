@@ -16,11 +16,12 @@ import { ArrowLeft, LogOut, Download, ListX } from 'lucide-react';
 import { LoginForm } from '@/components/login-form';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
+import { getStudents, getTeachers, uploadStudentsAndTeachers, updateStudentRenewal, bulkUpdateStudentRenewals } from '@/services/firestoreService';
 
 export default function AdminPage() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  const [isLoading, setIsLoading] = useState(true); // For overall data loading
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthCheckComplete, setIsAuthCheckComplete] = useState(false);
@@ -28,18 +29,13 @@ export default function AdminPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // This effect runs only on the client side
     if (typeof window !== 'undefined') {
       const rememberedAuth = localStorage.getItem('isAdminAuthenticated');
       if (rememberedAuth === 'true') {
         setIsAuthenticated(true);
       } else {
         const sessionAuth = sessionStorage.getItem('isAdminAuthenticated');
-        if (sessionAuth === 'true') { 
-           setIsAuthenticated(true);
-        } else {
-           setIsAuthenticated(false); 
-        }
+        setIsAuthenticated(sessionAuth === 'true');
       }
       setIsAuthCheckComplete(true);
     } else {
@@ -49,147 +45,135 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (isAuthCheckComplete && isAuthenticated) {
-      if (typeof window !== 'undefined') {
+    async function loadDataFromFirestore() {
+      if (isAuthCheckComplete && isAuthenticated) {
         setIsLoading(true);
         setError(null);
         try {
-          const storedTeachers = localStorage.getItem('teachers');
-          const storedStudents = localStorage.getItem('students');
-
-          let parsedTeachers: Teacher[] = [];
-          let parsedStudents: Student[] = [];
-          let _parseError = false; 
-
-          if (storedTeachers) {
-            try {
-              parsedTeachers = JSON.parse(storedTeachers);
-              if (!Array.isArray(parsedTeachers)) {
-                console.warn("Invalid teachers data found in localStorage (not an array).");
-                parsedTeachers = [];
-                _parseError = true;
-              }
-            } catch (e) {
-              console.error("Failed to parse teachers from localStorage:", e);
-              parsedTeachers = [];
-              _parseError = true;
-            }
-          }
-
-          if (storedStudents) {
-            try {
-              parsedStudents = JSON.parse(storedStudents);
-              if (!Array.isArray(parsedStudents)) {
-                console.warn("Invalid students data found in localStorage (not an array).");
-                parsedStudents = [];
-                _parseError = true;
-              }
-            } catch (e) {
-              console.error("Failed to parse students from localStorage:", e);
-              parsedStudents = [];
-              _parseError = true;
-            }
-          }
-          
-          setTeachers(parsedTeachers);
-          setStudents(parsedStudents);
-
-          if (_parseError) {
-             setError("Yerel depodaki bazı veriler bozuk olabilir. Lütfen verileri kontrol edin veya yeniden yükleyin.");
-             toast({
-                title: "Veri Yükleme Uyarısı",
-                description: "Yerel depodaki bazı veriler okunamadı. Listeler boş olabilir veya eksik veri içerebilir. Verileri yeniden yüklemeniz önerilir.",
-                variant: "destructive",
-                duration: 7000,
-             });
-          } else if (!storedTeachers && !storedStudents) {
-            setTeachers([]);
-            setStudents([]);
-          }
-
-        } catch (e) { 
-          console.error("Unexpected error during data loading setup:", e);
-          setTeachers([]);
+          const [fetchedStudents, fetchedTeachers] = await Promise.all([
+            getStudents(),
+            getTeachers()
+          ]);
+          setStudents(fetchedStudents);
+          setTeachers(fetchedTeachers);
+        } catch (err: any) {
+          console.error("Error loading data from Firestore:", err);
+          setError(err.message || "Veriler Firestore'dan yüklenirken bir hata oluştu.");
           setStudents([]);
-          setError("Veri yüklenirken beklenmedik bir hata oluştu.");
+          setTeachers([]);
+          toast({
+            title: "Veri Yükleme Hatası!",
+            description: err.message || "Veriler Firestore'dan yüklenemedi. Lütfen internet bağlantınızı kontrol edin ve tekrar deneyin.",
+            variant: "destructive",
+            duration: 7000,
+          });
         } finally {
-          setIsLoading(false); 
+          setIsLoading(false);
         }
+      } else if (isAuthCheckComplete && !isAuthenticated) {
+        setTeachers([]);
+        setStudents([]);
+        setIsLoading(false);
       }
-    } else if (isAuthCheckComplete && !isAuthenticated) {
-      setTeachers([]);
-      setStudents([]);
-      setIsLoading(false);
     }
+    loadDataFromFirestore();
   }, [isAuthenticated, isAuthCheckComplete, toast]);
 
-  useEffect(() => {
-    if (isAuthenticated && typeof window !== 'undefined' && !isLoading && isAuthCheckComplete) {
-      try {
-        if (teachers.length > 0 || students.length > 0) {
-            localStorage.setItem('teachers', JSON.stringify(teachers));
-            localStorage.setItem('students', JSON.stringify(students));
-        } else {
-             // If both are empty, it's okay for localStorage to be empty too.
-             // Do not remove if only one is empty, preserve the other.
-             if (teachers.length === 0 && students.length === 0) {
-                localStorage.removeItem('teachers');
-                localStorage.removeItem('students');
-             } else if (teachers.length === 0 && students.length > 0) {
-                 localStorage.removeItem('teachers'); // only remove teachers
-             } else if (students.length === 0 && teachers.length > 0) {
-                 localStorage.removeItem('students'); // only remove students
-             }
-        }
-      } catch (e) {
-        console.error("Failed to save data to localStorage:", e);
-        setError("Veriler yerel depoya kaydedilemedi.");
-        toast({
-            title: "Kayıt Hatası!",
-            description: "Veriler yerel depoya kaydedilemedi. Tarayıcı depolama alanı dolu olabilir.",
-            variant: "destructive",
-        });
-      }
+  const handleDataUpload = async (uploadedTeachers: Teacher[], uploadedStudents: Student[]) => {
+    setIsLoading(true); // Show loading indicator during upload
+    try {
+      await uploadStudentsAndTeachers(uploadedStudents, uploadedTeachers);
+      setTeachers(uploadedTeachers);
+      setStudents(uploadedStudents);
+      setGlobalSearchTerm('');
+      setError(null);
+      toast({
+        title: "Başarılı!",
+        description: "Veriler başarıyla Firestore'a yüklendi.",
+        variant: "default",
+      });
+    } catch (err: any) {
+      console.error("Error uploading data to Firestore:", err);
+      setError(err.message || "Veriler Firestore'a yüklenirken bir hata oluştu.");
+      toast({
+        title: "Yükleme Başarısız!",
+        description: err.message || "Veriler Firestore'a yüklenemedi.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  }, [teachers, students, isLoading, isAuthenticated, isAuthCheckComplete, toast]);
-
-  const handleDataUpload = (uploadedTeachers: Teacher[], uploadedStudents: Student[]) => {
-    setTeachers(uploadedTeachers);
-    setStudents(uploadedStudents);
-    setGlobalSearchTerm(''); 
-    setError(null);
   };
 
-  const handleRenewalToggle = (studentId: number) => {
+  const handleRenewalToggle = async (studentId: number) => {
+    const originalStudents = [...students];
+    // Optimistically update UI
     setStudents(prevStudents =>
       prevStudents.map(student =>
         student.id === studentId ? { ...student, renewed: !student.renewed } : student
       )
     );
+    try {
+      const studentToUpdate = originalStudents.find(s => s.id === studentId);
+      if (studentToUpdate) {
+        await updateStudentRenewal(studentId, !studentToUpdate.renewed);
+        // No toast for individual toggle to keep UI less noisy, or add if preferred
+      }
+    } catch (err: any) {
+      console.error("Error updating student renewal in Firestore:", err);
+      setError(err.message || "Öğrenci kayıt durumu güncellenirken bir hata oluştu.");
+      setStudents(originalStudents); // Revert optimistic update
+      toast({
+        title: "Güncelleme Başarısız!",
+        description: err.message || "Öğrenci kayıt durumu güncellenemedi.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleBulkRenewalToggle = (studentIdsToUpdate: number[], newRenewedState: boolean) => {
+  const handleBulkRenewalToggle = async (studentIdsToUpdate: number[], newRenewedState: boolean) => {
+    const originalStudents = [...students];
+    // Optimistically update UI
     setStudents(prevStudents =>
       prevStudents.map(student =>
         studentIdsToUpdate.includes(student.id) ? { ...student, renewed: newRenewedState } : student
       )
     );
+    try {
+      await bulkUpdateStudentRenewals(studentIdsToUpdate, newRenewedState);
+      toast({
+        title: "Başarılı!",
+        description: `${studentIdsToUpdate.length} öğrencinin kayıt durumu güncellendi.`,
+        variant: "default",
+      });
+    } catch (err: any) {
+      console.error("Error bulk updating student renewals in Firestore:", err);
+      setError(err.message || "Öğrenci kayıt durumları toplu güncellenirken bir hata oluştu.");
+      setStudents(originalStudents); // Revert optimistic update
+      toast({
+        title: "Toplu Güncelleme Başarısız!",
+        description: err.message || "Öğrenci kayıt durumları toplu güncellenemedi.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     setError(null);
+    // Data loading is triggered by useEffect dependency on isAuthenticated
   };
 
-   const handleLogout = () => {
-    setIsAuthenticated(false); 
+  const handleLogout = () => {
+    setIsAuthenticated(false);
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('isAdminAuthenticated');
       localStorage.removeItem('isAdminAuthenticated');
     }
-    setTeachers([]); 
-    setStudents([]); 
+    setTeachers([]);
+    setStudents([]);
     setError(null);
+    // No need to clear Firestore data on logout
   };
 
   const handleDownloadCurrentData = () => {
@@ -246,14 +230,14 @@ export default function AdminPage() {
   }, [students, globalSearchTerm]);
 
   if (!isAuthCheckComplete) {
-      return (
-          <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
-              <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-          </div>
-      );
+    return (
+      <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
+        <svg className="animate-spin h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -268,30 +252,30 @@ export default function AdminPage() {
     <div className="min-h-screen bg-secondary p-4 md:p-8">
       <header className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-3">
-             <Image
-               src="/vildan_star_logo.png"
-               alt="Vildan Koleji Logo"
-               width={40}
-               height={40}
-               className="rounded-full object-cover"
-               data-ai-hint="logo school"
-             />
+          <Image
+            src="/vildan_star_logo.png"
+            alt="Vildan Koleji Logo"
+            width={40}
+            height={40}
+            className="rounded-full object-cover"
+            data-ai-hint="logo school"
+          />
           <h1 className="text-2xl md:text-3xl font-bold text-primary">
             Kayıt <span className="text-vildan-burgundy">Takip</span> - Admin Paneli
           </h1>
         </div>
-         <div className="flex items-center gap-2">
-             <Link href="/" passHref legacyBehavior>
-                <Button variant="outline" size="sm">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Ana Sayfaya Dön
-                </Button>
-             </Link>
-             <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Çıkış Yap
-             </Button>
-         </div>
+        <div className="flex items-center gap-2">
+          <Link href="/" passHref legacyBehavior>
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Ana Sayfaya Dön
+            </Button>
+          </Link>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Çıkış Yap
+          </Button>
+        </div>
       </header>
 
       {error && (
@@ -305,7 +289,7 @@ export default function AdminPage() {
         <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
           <CardHeader>
             <CardTitle>Veri Yükleme</CardTitle>
-            <CardDescription>Öğretmen ve öğrenci listelerini içeren Excel dosyasını yükleyin.</CardDescription>
+            <CardDescription>Öğretmen ve öğrenci listelerini içeren Excel dosyasını yükleyin. Bu işlem Firestore'daki mevcut verilerin üzerine yazacaktır.</CardDescription>
           </CardHeader>
           <CardContent>
             <UploadForm onDataUpload={handleDataUpload} />
@@ -316,53 +300,53 @@ export default function AdminPage() {
           <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
             <div>
               <CardTitle>Kayıt Yenileme Yönetimi</CardTitle>
-              <CardDescription>Öğrencilerin kayıt yenileme durumlarını buradan güncelleyebilirsiniz.</CardDescription>
+              <CardDescription>Öğrencilerin kayıt yenileme durumlarını buradan güncelleyebilirsiniz. Değişiklikler Firestore'a kaydedilecektir.</CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                <Link href="/admin/not-renewed" passHref legacyBehavior>
-                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                        <ListX className="mr-2 h-4 w-4" />
-                        Kayıt Yenilemeyenler
-                    </Button>
-                </Link>
-                <Button variant="outline" size="sm" onClick={handleDownloadCurrentData} disabled={isLoading || (students.length === 0 && teachers.length === 0)} className="w-full sm:w-auto">
-                  <Download className="mr-2 h-4 w-4" />
-                  Güncel Listeyi İndir
+              <Link href="/admin/not-renewed" passHref legacyBehavior>
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                  <ListX className="mr-2 h-4 w-4" />
+                  Kayıt Yenilemeyenler
                 </Button>
+              </Link>
+              <Button variant="outline" size="sm" onClick={handleDownloadCurrentData} disabled={isLoading || (students.length === 0 && teachers.length === 0)} className="w-full sm:w-auto">
+                <Download className="mr-2 h-4 w-4" />
+                Güncel Listeyi İndir
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="mb-6"> 
-              <Label htmlFor="global-student-search" className="text-base font-semibold">Tüm Öğrencilerde Ara</Label> 
+            <div className="mb-6">
+              <Label htmlFor="global-student-search" className="text-base font-semibold">Tüm Öğrencilerde Ara</Label>
               <Input
                 id="global-student-search"
                 type="text"
                 placeholder="Öğrenci adıyla tüm listede ara..."
                 value={globalSearchTerm}
                 onChange={(e) => setGlobalSearchTerm(e.target.value)}
-                className="mt-2 text-base h-11" 
+                className="mt-2 text-base h-11"
               />
             </div>
             {isLoading ? (
               <div className="space-y-4 p-4">
-                 <Skeleton className="h-10 w-1/3 mb-4" />
-                 <Skeleton className="h-8 w-full mb-2" />
-                 <Skeleton className="h-10 w-full mb-2" />
-                 <Skeleton className="h-10 w-full mb-2" />
-                 <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-1/3 mb-4" />
+                <Skeleton className="h-8 w-full mb-2" />
+                <Skeleton className="h-10 w-full mb-2" />
+                <Skeleton className="h-10 w-full mb-2" />
+                <Skeleton className="h-10 w-full" />
               </div>
             ) : (
-              teachers.length > 0 || students.length > 0 || globalSearchTerm ? ( 
+              teachers.length > 0 || students.length > 0 || globalSearchTerm ? (
                 <TeacherDetails
                   teachers={teachers}
-                  students={displayStudentsForTeacherDetails} 
-                  allStudents={students} 
+                  students={displayStudentsForTeacherDetails}
+                  allStudents={students} // Pass all students for accurate stats calculation
                   onRenewalToggle={handleRenewalToggle}
                   onBulkRenewalToggle={handleBulkRenewalToggle}
                   isAdminView={true}
                 />
               ) : (
-                 <p className="text-muted-foreground text-center py-4">Yönetmek için lütfen önce Excel dosyasını yükleyin.</p>
+                <p className="text-muted-foreground text-center py-4">Yönetmek için lütfen önce Excel dosyasını yükleyin veya Firestore'da veri olduğundan emin olun.</p>
               )
             )}
           </CardContent>
@@ -371,4 +355,3 @@ export default function AdminPage() {
     </div>
   );
 }
-

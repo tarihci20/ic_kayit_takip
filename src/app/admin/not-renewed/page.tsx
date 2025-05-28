@@ -9,10 +9,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ListX, Users, BookOpen } from 'lucide-react';
+import { ArrowLeft, ListX, Users } from 'lucide-react';
 import { LoginForm } from '@/components/login-form';
 import { useToast } from '@/hooks/use-toast';
-import { Badge } from '@/components/ui/badge';
+// import { Badge } from '@/components/ui/badge'; // Badge not currently used here
+import { getStudents } from '@/services/firestoreService';
 
 export default function NotRenewedStudentsPage() {
   const [allStudents, setAllStudents] = useState<Student[]>([]);
@@ -29,68 +30,41 @@ export default function NotRenewedStudentsPage() {
         setIsAuthenticated(true);
       } else {
         const sessionAuth = sessionStorage.getItem('isAdminAuthenticated');
-        if (sessionAuth === 'true') {
-           setIsAuthenticated(true);
-        } else {
-           setIsAuthenticated(false);
-        }
+        setIsAuthenticated(sessionAuth === 'true');
       }
       setIsAuthCheckComplete(true);
     } else {
-      setIsAuthenticated(false); // Should not happen in CSR for this page, but defensive
+      setIsAuthenticated(false);
       setIsAuthCheckComplete(true);
     }
   }, []);
 
   useEffect(() => {
-    if (isAuthCheckComplete && isAuthenticated) {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const storedStudents = localStorage.getItem('students');
-        let parsedStudents: Student[] = [];
-        let parseError = false;
-
-        if (storedStudents) {
-          try {
-            parsedStudents = JSON.parse(storedStudents);
-            if (!Array.isArray(parsedStudents)) {
-              console.warn("Invalid students data found in localStorage (not an array).");
-              parsedStudents = [];
-              parseError = true;
-            }
-          } catch (e) {
-            console.error("Failed to parse students from localStorage:", e);
-            parsedStudents = [];
-            parseError = true;
-          }
+    async function loadDataFromFirestore() {
+      if (isAuthCheckComplete && isAuthenticated) {
+        setIsLoading(true);
+        setError(null);
+        try {
+          const fetchedStudents = await getStudents();
+          setAllStudents(fetchedStudents);
+        } catch (err: any) {
+          console.error("Error loading students from Firestore:", err);
+          setError(err.message || "Öğrenci verileri Firestore'dan yüklenirken bir hata oluştu.");
+          setAllStudents([]);
+          toast({
+            title: "Veri Yükleme Hatası!",
+            description: err.message || "Öğrenci verileri Firestore'dan yüklenemedi.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoading(false);
         }
-        
-        setAllStudents(parsedStudents);
-
-        if (parseError) {
-           setError("Yerel depodaki öğrenci verileri bozuk olabilir. Lütfen Admin Panelinden verileri kontrol edin veya yeniden yükleyin.");
-           toast({
-              title: "Veri Yükleme Uyarısı",
-              description: "Yerel depodaki öğrenci verileri okunamadı. Liste boş olabilir veya eksik veri içerebilir.",
-              variant: "destructive",
-              duration: 7000,
-           });
-        } else if (!storedStudents) {
-          setAllStudents([]); // No students data
-        }
-
-      } catch (e) {
-        console.error("Unexpected error during student data loading:", e);
+      } else if (isAuthCheckComplete && !isAuthenticated) {
         setAllStudents([]);
-        setError("Öğrenci verileri yüklenirken beklenmedik bir hata oluştu.");
-      } finally {
         setIsLoading(false);
       }
-    } else if (isAuthCheckComplete && !isAuthenticated) {
-      setAllStudents([]);
-      setIsLoading(false);
     }
+    loadDataFromFirestore();
   }, [isAuthenticated, isAuthCheckComplete, toast]);
 
   const notRenewedStudentsByClass = useMemo(() => {
@@ -114,7 +88,7 @@ export default function NotRenewedStudentsPage() {
       const numA = parseInt(classA);
       const numB = parseInt(classB);
       if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-      return classA.localeCompare(classB); // Fallback for non-numeric class names if any
+      return classA.localeCompare(classB);
     });
   }, [allStudents]);
 
@@ -133,9 +107,9 @@ export default function NotRenewedStudentsPage() {
     return (
       <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
         <LoginForm onLoginSuccess={() => {
-            setIsAuthenticated(true);
-            setError(null);
-            // Data loading will be triggered by useEffect dependency on isAuthenticated
+          setIsAuthenticated(true);
+          setError(null);
+          // Data loading will be triggered by useEffect dependency on isAuthenticated
         }} />
       </div>
     );
@@ -194,11 +168,11 @@ export default function NotRenewedStudentsPage() {
             <Card key={className} className="shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
-                    <Users className="h-6 w-6 text-primary" />
-                    {className === "Belirtilmemiş" ? "Sınıfı Belirtilmemiş" : `${className}. Sınıflar`} - Kayıt Yenilemeyenler
+                  <Users className="h-6 w-6 text-primary" />
+                  {className === "Belirtilmemiş" ? "Sınıfı Belirtilmemiş" : `${className}. Sınıflar`} - Kayıt Yenilemeyenler
                 </CardTitle>
                 <CardDescription>
-                    Bu sınıfta kayıt yenileme işlemi yapmayan öğrenci sayısı: {studentsInClass.length}
+                  Bu sınıfta kayıt yenileme işlemi yapmayan öğrenci sayısı: {studentsInClass.length}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -231,7 +205,7 @@ export default function NotRenewedStudentsPage() {
               <ListX className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-xl font-semibold text-foreground">Kayıt Yenilemeyen Öğrenci Bulunmuyor</p>
               <p className="text-muted-foreground mt-2">
-                {allStudents.length === 0 && !isLoading ? "Sistemde hiç öğrenci verisi bulunmuyor. Lütfen Admin Panelinden yükleme yapın." : "Tüm öğrenciler kayıtlarını yenilemiş görünüyor veya kayıt yenilemeyen öğrenci bulunamadı."}
+                {allStudents.length === 0 && !isLoading && !error ? "Sistemde hiç öğrenci verisi bulunmuyor. Lütfen Admin Panelinden yükleme yapın." : (error ? "Veriler yüklenemedi." : "Tüm öğrenciler kayıtlarını yenilemiş görünüyor veya kayıt yenilemeyen öğrenci bulunamadı.")}
               </p>
             </div>
           </CardContent>
@@ -240,4 +214,3 @@ export default function NotRenewedStudentsPage() {
     </div>
   );
 }
-
