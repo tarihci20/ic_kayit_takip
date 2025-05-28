@@ -4,14 +4,17 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 // import { getAuth } from 'firebase/auth'; // Gelecekte Firebase Authentication için
 
 // Firebase projenizin yapılandırma bilgileri
-// BU BİLGİLERİ KENDİ FIREBASE PROJENİZDEN ALIP GÜNCELLEYİN!
+// LÜTFEN BU BİLGİLERİ KENDİ FIREBASE PROJENİZDEN ALDIĞINIZ
+// GERÇEK firebaseConfig BİLGİLERİYLE GÜNCELLEYİN!
+// AŞAĞIDAKİ ÖRNEK YAPILANDIRMAYI KULLANMAYIN.
 const firebaseConfig = {
-  apiKey: "AIzaSyB0BTWyiuf7RrGHzYoH2ZAld-hxBp06YNQ",
-  authDomain: "ickayittakip-5edjn.firebaseapp.com",
-  projectId: "ickayittakip-5edjn",
-  storageBucket: "ickayittakip-5edjn.firebasestorage.app",
-  messagingSenderId: "336899798809",
-  appId: "1:336899798809:web:db9a94fc16233cfeb8b788"
+  apiKey: "YOUR_API_KEY", // Firebase Console'dan kopyalayın
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com", // Firebase Console'dan kopyalayın
+  projectId: "YOUR_PROJECT_ID", // Firebase Console'dan kopyalayın
+  storageBucket: "YOUR_PROJECT_ID.appspot.com", // Firebase Console'dan kopyalayın
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // Firebase Console'dan kopyalayın
+  appId: "YOUR_APP_ID" // Firebase Console'dan kopyalayın
+  // measurementId: "G-XXXXXXXXXX" // İsteğe bağlı, varsa ekleyebilirsiniz
 };
 
 let app: FirebaseApp;
@@ -20,8 +23,10 @@ let db: Firestore;
 
 if (getApps().length === 0) {
   app = initializeApp(firebaseConfig);
+  console.log("Firebase initialized successfully!");
 } else {
   app = getApps()[0];
+  console.log("Firebase app already initialized.");
 }
 
 db = getFirestore(app);
